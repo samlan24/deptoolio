@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
-import semver from 'semver';
-import pMap from 'p-map';
+import { NextRequest, NextResponse } from "next/server";
+import semver from "semver";
+import pMap from "p-map";
 
 interface VersionInfo {
   original: string;
@@ -14,15 +14,57 @@ interface DependencyResult {
   currentVersion: string;
   latestVersion: string;
   latestStable: string;
-  status: 'current' | 'outdated' | 'major';
+  status: "current" | "outdated" | "major";
   isPrerelease: boolean;
+  lastCommitDate: string | null;
+
+}
+
+interface GitHubHealthMetrics {
+  lastCommitDate: string | null;
+
+}
+
+function extractGitHubRepoInfo(
+  url: string
+): { owner: string; repo: string } | null {
+  const match = url.match(/github\.com\/([^/]+)\/([^/.]+)(\.git)?/i);
+  if (!match) return null;
+  return { owner: match[1], repo: match[2] };
+}
+
+async function fetchGitHubHealthMetrics(
+  repoUrl: string,
+  token?: string
+): Promise<GitHubHealthMetrics> {
+  const repoInfo = extractGitHubRepoInfo(repoUrl);
+  if (!repoInfo) return { lastCommitDate: null};
+
+  const headers: Record<string, string> = {};
+  if (token) headers["Authorization"] = `token ${token}`;
+
+  const repoApiUrl = `https://api.github.com/repos/${repoInfo.owner}/${repoInfo.repo}`;
+  const repoResponse = await fetch(repoApiUrl, { headers });
+  if (!repoResponse.ok)
+    return { lastCommitDate: null };
+  const repoData = await repoResponse.json();
+  const branch = repoData.default_branch || "main";
+
+  const branchApiUrl = `https://api.github.com/repos/${repoInfo.owner}/${repoInfo.repo}/branches/${branch}`;
+  const branchResponse = await fetch(branchApiUrl, { headers });
+  if (!branchResponse.ok)
+    return { lastCommitDate: null};
+  const branchData = await branchResponse.json();
+  const lastCommitDate = branchData.commit?.commit?.committer?.date || null;
+
+  return { lastCommitDate};
 }
 
 // Helper function to parse version ranges
 function parseVersionRange(versionSpec: string): VersionInfo | null {
   const rangeMatch = versionSpec.match(/^([\^~>=<]+)/);
   const rangeType = rangeMatch?.[0];
-  const cleaned = versionSpec.replace(/^[\^~>=<]+/, '');
+  const cleaned = versionSpec.replace(/^[\^~>=<]+/, "");
 
   const coercedVersion = semver.coerce(cleaned);
 
@@ -34,7 +76,7 @@ function parseVersionRange(versionSpec: string): VersionInfo | null {
     original: versionSpec,
     cleaned: coercedVersion.version,
     isRange: !!rangeType,
-    rangeType
+    rangeType,
   };
 }
 
@@ -43,14 +85,14 @@ async function fetchWithRetry(url: string, retries = 2): Promise<Response> {
   for (let i = 0; i <= retries; i++) {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
 
       const response = await fetch(url, {
         headers: {
-          'User-Agent': 'dependency-tracker/1.0',
-          'Accept': 'application/json'
+          "User-Agent": "dependency-tracker/1.0",
+          Accept: "application/json",
         },
-        signal: controller.signal
+        signal: controller.signal,
       });
 
       clearTimeout(timeoutId);
@@ -59,10 +101,12 @@ async function fetchWithRetry(url: string, retries = 2): Promise<Response> {
       console.log(`Attempt ${i + 1} failed for ${url}:`, error);
       if (i === retries) throw error;
       // Exponential backoff
-      await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, i)));
+      await new Promise((resolve) =>
+        setTimeout(resolve, 1000 * Math.pow(2, i))
+      );
     }
   }
-  throw new Error('Max retries reached');
+  throw new Error("Max retries reached");
 }
 
 // Helper function to determine dependency status
@@ -70,11 +114,11 @@ function getDependencyStatus(
   currentVersion: string,
   latestVersion: string,
   versionSpec: string
-): 'current' | 'outdated' | 'major' {
+): "current" | "outdated" | "major" {
   // If the version spec range already satisfies the latest version, it's current
   try {
     if (semver.satisfies(latestVersion, versionSpec)) {
-      return 'current';
+      return "current";
     }
   } catch (error) {
     // If semver.satisfies fails, fall back to direct comparison
@@ -83,20 +127,20 @@ function getDependencyStatus(
 
   // Compare versions directly
   if (semver.gte(currentVersion, latestVersion)) {
-    return 'current';
+    return "current";
   }
 
   const currentMajor = semver.major(currentVersion);
   const latestMajor = semver.major(latestVersion);
 
-  return currentMajor < latestMajor ? 'major' : 'outdated';
+  return currentMajor < latestMajor ? "major" : "outdated";
 }
 
 // Helper function to get latest stable version
 function getLatestStableVersion(packageInfo: any): string {
   const versions = packageInfo.versions || {};
   const stableVersions = Object.keys(versions)
-    .filter(v => {
+    .filter((v) => {
       try {
         return !semver.prerelease(v);
       } catch {
@@ -105,24 +149,21 @@ function getLatestStableVersion(packageInfo: any): string {
     })
     .sort(semver.rcompare);
 
-  return stableVersions[0] || packageInfo['dist-tags']?.latest || '';
+  return stableVersions[0] || packageInfo["dist-tags"]?.latest || "";
 }
 
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
-    const file = formData.get('file') as File;
+    const file = formData.get("file") as File;
 
     if (!file) {
-      return NextResponse.json(
-        { error: 'No file uploaded' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
     }
 
-    if (!file.name.endsWith('.json') && !file.name.endsWith('package.json')) {
+    if (!file.name.endsWith(".json") && !file.name.endsWith("package.json")) {
       return NextResponse.json(
-        { error: 'File must be a package.json file' },
+        { error: "File must be a package.json file" },
         { status: 400 }
       );
     }
@@ -134,14 +175,14 @@ export async function POST(request: NextRequest) {
       packageJson = JSON.parse(contents);
     } catch (parseError) {
       return NextResponse.json(
-        { error: 'Invalid JSON format' },
+        { error: "Invalid JSON format" },
         { status: 400 }
       );
     }
 
-    if (!packageJson || typeof packageJson !== 'object') {
+    if (!packageJson || typeof packageJson !== "object") {
       return NextResponse.json(
-        { error: 'Invalid package.json structure' },
+        { error: "Invalid package.json structure" },
         { status: 400 }
       );
     }
@@ -153,18 +194,18 @@ export async function POST(request: NextRequest) {
 
     if (Object.keys(allDeps).length === 0) {
       return NextResponse.json(
-        { error: 'No dependencies found in package.json' },
+        { error: "No dependencies found in package.json" },
         { status: 400 }
       );
     }
 
     const entries = Object.entries(allDeps);
-    const concurrency = 8; // Reduced for better reliability
+    const concurrency = 2; // Reduced for better reliability
 
     const results = await pMap(
       entries,
       async ([name, versionSpecifier]) => {
-        if (typeof versionSpecifier !== 'string') {
+        if (typeof versionSpecifier !== "string") {
           console.log(`Skipping ${name}: version is not a string`);
           return null;
         }
@@ -172,40 +213,46 @@ export async function POST(request: NextRequest) {
         // Enhanced skip conditions
         if (
           // Git and URL dependencies
-          versionSpecifier.startsWith('git+') ||
-          versionSpecifier.startsWith('http') ||
-          versionSpecifier.startsWith('https') ||
-          versionSpecifier.startsWith('file:') ||
-          versionSpecifier.startsWith('npm:') ||
-          versionSpecifier.includes('/') ||
+          versionSpecifier.startsWith("git+") ||
+          versionSpecifier.startsWith("http") ||
+          versionSpecifier.startsWith("https") ||
+          versionSpecifier.startsWith("file:") ||
+          versionSpecifier.startsWith("npm:") ||
+          versionSpecifier.includes("/") ||
           // Workspace and local dependencies
           /^workspace:/.test(versionSpecifier) ||
-          versionSpecifier.startsWith('link:') ||
+          versionSpecifier.startsWith("link:") ||
           // Wildcard and tag dependencies
-          versionSpecifier.includes('*') ||
-          versionSpecifier.includes('x') ||
-          versionSpecifier === 'latest' ||
-          versionSpecifier === 'next' ||
-          versionSpecifier === 'beta' ||
-          versionSpecifier === 'alpha' ||
-          versionSpecifier === 'canary' ||
+          versionSpecifier.includes("*") ||
+          versionSpecifier.includes("x") ||
+          versionSpecifier === "latest" ||
+          versionSpecifier === "next" ||
+          versionSpecifier === "beta" ||
+          versionSpecifier === "alpha" ||
+          versionSpecifier === "canary" ||
           // Empty or invalid
-          versionSpecifier.trim() === '' ||
+          versionSpecifier.trim() === "" ||
           versionSpecifier.length > 50 // Suspiciously long version strings
         ) {
-          console.log(`Skipping ${name}: unsupported version pattern (${versionSpecifier})`);
+          console.log(
+            `Skipping ${name}: unsupported version pattern (${versionSpecifier})`
+          );
           return null;
         }
 
         const versionInfo = parseVersionRange(versionSpecifier);
 
         if (!versionInfo) {
-          console.log(`Skipping ${name}: cannot parse version from "${versionSpecifier}"`);
+          console.log(
+            `Skipping ${name}: cannot parse version from "${versionSpecifier}"`
+          );
           return null;
         }
 
         try {
-          const response = await fetchWithRetry(`https://registry.npmjs.org/${encodeURIComponent(name)}`);
+          const response = await fetchWithRetry(
+            `https://registry.npmjs.org/${encodeURIComponent(name)}`
+          );
 
           if (response.status === 404) {
             console.log(`Skipping ${name}: package not found on npm`);
@@ -218,18 +265,38 @@ export async function POST(request: NextRequest) {
           }
 
           if (!response.ok) {
-            console.log(`Skipping ${name}: npm registry returned status ${response.status}`);
+            console.log(
+              `Skipping ${name}: npm registry returned status ${response.status}`
+            );
             return null;
           }
 
           const packageInfo = await response.json();
 
-          if (!packageInfo || typeof packageInfo !== 'object') {
+          let healthMetrics: GitHubHealthMetrics = {
+            lastCommitDate: null,
+
+          };
+
+          if (packageInfo.repository && packageInfo.repository.url) {
+            const repoUrl = packageInfo.repository.url.replace(/^git\+/, "");
+            const githubToken = process.env.GITHUB_TOKEN; // Optional: set your token in environment variables
+            try {
+              healthMetrics = await fetchGitHubHealthMetrics(
+                repoUrl,
+                githubToken
+              );
+            } catch (error) {
+              console.log(`Error fetching GitHub metrics for ${name}:`, error);
+            }
+          }
+
+          if (!packageInfo || typeof packageInfo !== "object") {
             console.log(`Skipping ${name}: invalid package info received`);
             return null;
           }
 
-          const latestVersion = packageInfo['dist-tags']?.latest;
+          const latestVersion = packageInfo["dist-tags"]?.latest;
           const latestStable = getLatestStableVersion(packageInfo);
 
           if (!latestVersion) {
@@ -238,8 +305,15 @@ export async function POST(request: NextRequest) {
           }
 
           // Use stable version for comparison if available and different from latest
-          const versionToCompare = latestStable && latestStable !== latestVersion ? latestStable : latestVersion;
-          const status = getDependencyStatus(versionInfo.cleaned, versionToCompare, versionSpecifier);
+          const versionToCompare =
+            latestStable && latestStable !== latestVersion
+              ? latestStable
+              : latestVersion;
+          const status = getDependencyStatus(
+            versionInfo.cleaned,
+            versionToCompare,
+            versionSpecifier
+          );
 
           const result: DependencyResult = {
             name,
@@ -247,11 +321,11 @@ export async function POST(request: NextRequest) {
             latestVersion,
             latestStable: latestStable || latestVersion,
             status,
-            isPrerelease: !!semver.prerelease(latestVersion)
+            isPrerelease: !!semver.prerelease(latestVersion),
+            lastCommitDate: healthMetrics.lastCommitDate,
           };
 
           return result;
-
         } catch (error) {
           console.error(`Error fetching data for ${name}:`, error);
           return null;
@@ -260,11 +334,13 @@ export async function POST(request: NextRequest) {
       { concurrency }
     );
 
-    const filteredResults = results.filter((result): result is DependencyResult => result !== null);
+    const filteredResults = results.filter(
+      (result): result is DependencyResult => result !== null
+    );
 
     if (filteredResults.length === 0) {
       return NextResponse.json(
-        { error: 'No valid dependencies could be processed' },
+        { error: "No valid dependencies could be processed" },
         { status: 400 }
       );
     }
@@ -284,19 +360,18 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json(filteredResults);
-
   } catch (error) {
-    console.error('Error processing request:', error);
+    console.error("Error processing request:", error);
 
     if (error instanceof SyntaxError) {
       return NextResponse.json(
-        { error: 'Invalid JSON in uploaded file' },
+        { error: "Invalid JSON in uploaded file" },
         { status: 400 }
       );
     }
 
     return NextResponse.json(
-      { error: 'Failed to process package.json' },
+      { error: "Failed to process package.json" },
       { status: 500 }
     );
   }
