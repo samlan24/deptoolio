@@ -41,7 +41,7 @@ export default function Home() {
   const getApiEndpoint = (fileType: FileType): string => {
     switch (fileType) {
       case 'npm':
-        return '/api/check';
+        return '/api/check-js';
       case 'python':
         return '/api/check-python';
       default:
@@ -144,7 +144,7 @@ export default function Home() {
   const stats = getSummaryStats();
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen">
       <div className="max-w-4xl mx-auto">
         <div className="text-center">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Dependency Tracker</h1>
