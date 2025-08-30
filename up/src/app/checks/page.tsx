@@ -9,6 +9,7 @@ import {
   Package,
   Code,
 } from "lucide-react";
+import Link from "next/link";
 
 interface DependencyStatus {
   name: string;
@@ -231,7 +232,7 @@ export default function Home() {
   const stats = getSummaryStats();
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen pt-20">
       <div className="max-w-4xl mx-auto">
         <div className="text-center">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
@@ -241,7 +242,7 @@ export default function Home() {
             Upload your dependency files to check for outdated packages
           </p>
 
-          <div className="mb-6">
+          <div className="mb-6 flex flex-col items-center space-y-4">
             <label
               htmlFor="file-upload"
               className="relative cursor-pointer bg-white rounded-lg shadow-sm border-2 border-dashed border-gray-300 px-8 py-6 hover:border-gray-400 transition-colors inline-block"
@@ -266,6 +267,42 @@ export default function Home() {
                 aria-disabled={isLoading || vulnerabilityLoading}
               />
             </label>
+            {/* Divider */}
+            <div className="flex items-center w-full max-w-md">
+              <div className="flex-grow border-t border-gray-300"></div>
+              <span className="mx-3 text-gray-500 text-sm">or</span>
+              <div className="flex-grow border-t border-gray-300"></div>
+            </div>
+            {/* Connect buttons */}
+            <div className="flex gap-3">
+              <Link href="/login">
+              <button
+                className="flex items-center gap-2 px-4 py-2 bg-black text-white rounded hover:bg-gray-800"
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M12 .5C5.65.5.5 5.65.5 12c0 5.1 3.3 9.4 7.9 10.9.6.1.8-.3.8-.6v-2c-3.2.7-3.9-1.5-3.9-1.5-.5-1.1-1.1-1.4-1.1-1.4-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.5 2.3 1.1 2.8.8.1-.7.4-1.1.7-1.4-2.5-.3-5.2-1.3-5.2-5.7 0-1.2.4-2.1 1-2.9-.1-.3-.4-1.3.1-2.6 0 0 .8-.3 2.7 1a9.3 9.3 0 0 1 4.9 0c1.9-1.3 2.7-1 2.7-1 .5 1.3.2 2.3.1 2.6.6.8 1 1.7 1 2.9 0 4.4-2.7 5.4-5.3 5.7.4.3.7.9.7 1.8v2.6c0 .3.2.7.8.6a11.5 11.5 0 0 0 7.9-10.9C23.5 5.65 18.35.5 12 .5z" />
+                </svg>
+                Connect GitHub
+              </button>
+              </Link>
+              <button
+                onClick={() => (window.location.href = "/api/auth/gitlab")}
+                className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700"
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M22.47 9.6l-1.3-4.1a1.05 1.05 0 0 0-2 0L17.5 9.6H6.5L4.8 5.5a1.05 1.05 0 0 0-2 0L1.47 9.6a1.07 1.07 0 0 0 .4 1.2L12 22.6l10.1-11.8c.3-.3.4-.8.3-1.2z" />
+                </svg>
+                Connect GitLab
+              </button>
+            </div>
           </div>
 
           {fileName && detectedFileType !== "unknown" && (
@@ -289,7 +326,7 @@ export default function Home() {
 
         {results.length > 0 && (
           <>
-            <div className="mt-4 text-right">
+            <div className="mt-4 text-right ">
               <button
                 onClick={handleVulnerabilityScan}
                 disabled={vulnerabilityLoading}
@@ -305,19 +342,27 @@ export default function Home() {
               {/* Summary Stats */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                 <div className="bg-white rounded-lg shadow p-4 text-center">
-                  <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
+                  <div className="text-2xl font-bold text-gray-900">
+                    {stats.total}
+                  </div>
                   <div className="text-sm text-gray-600">Total</div>
                 </div>
                 <div className="bg-white rounded-lg shadow p-4 text-center">
-                  <div className="text-2xl font-bold text-green-600">{stats.current}</div>
+                  <div className="text-2xl font-bold text-green-600">
+                    {stats.current}
+                  </div>
                   <div className="text-sm text-gray-600">Current</div>
                 </div>
                 <div className="bg-white rounded-lg shadow p-4 text-center">
-                  <div className="text-2xl font-bold text-yellow-600">{stats.outdated}</div>
+                  <div className="text-2xl font-bold text-yellow-600">
+                    {stats.outdated}
+                  </div>
                   <div className="text-sm text-gray-600">Outdated</div>
                 </div>
                 <div className="bg-white rounded-lg shadow p-4 text-center">
-                  <div className="text-2xl font-bold text-red-600">{stats.major}</div>
+                  <div className="text-2xl font-bold text-red-600">
+                    {stats.major}
+                  </div>
                   <div className="text-sm text-gray-600">Major Updates</div>
                 </div>
               </div>
@@ -348,24 +393,28 @@ export default function Home() {
                             {dep.lastCommitDate && (
                               <p className="text-xs text-gray-400 mt-1">
                                 Last Commit:{" "}
-                                {new Date(dep.lastCommitDate).toLocaleDateString()}
+                                {new Date(
+                                  dep.lastCommitDate
+                                ).toLocaleDateString()}
                               </p>
                             )}
 
-                            {dep.vulnerabilities && dep.vulnerabilities.length > 0 && (
-                              <div className="mt-1">
-                                <span className="text-xs font-semibold text-red-600">
-                                  Vulnerabilities:
-                                </span>
-                                <ul className="text-xs text-red-500 list-disc list-inside">
-                                  {dep.vulnerabilities.map((vuln, i) => (
-                                    <li key={i} title={vuln.title}>
-                                      [{vuln.severity.toUpperCase()}] {vuln.title}
-                                    </li>
-                                  ))}
-                                </ul>
-                              </div>
-                            )}
+                            {dep.vulnerabilities &&
+                              dep.vulnerabilities.length > 0 && (
+                                <div className="mt-1">
+                                  <span className="text-xs font-semibold text-red-600">
+                                    Vulnerabilities:
+                                  </span>
+                                  <ul className="text-xs text-red-500 list-disc list-inside">
+                                    {dep.vulnerabilities.map((vuln, i) => (
+                                      <li key={i} title={vuln.title}>
+                                        [{vuln.severity.toUpperCase()}]{" "}
+                                        {vuln.title}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
                           </div>
                         </div>
                         <span
@@ -387,15 +436,25 @@ export default function Home() {
 
               {/* Action suggestions */}
               <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h3 className="text-sm font-medium text-blue-900 mb-2">Next Steps</h3>
+                <h3 className="text-sm font-medium text-blue-900 mb-2">
+                  Next Steps
+                </h3>
                 <ul className="text-sm text-blue-700 space-y-1">
                   {stats.major > 0 && (
-                    <li>• Review {stats.major} major update(s) carefully - they may contain breaking changes</li>
+                    <li>
+                      • Review {stats.major} major update(s) carefully - they
+                      may contain breaking changes
+                    </li>
                   )}
                   {stats.outdated > 0 && (
-                    <li>• Consider updating {stats.outdated} minor/patch version(s) for bug fixes and improvements</li>
+                    <li>
+                      • Consider updating {stats.outdated} minor/patch
+                      version(s) for bug fixes and improvements
+                    </li>
                   )}
-                  {stats.current === stats.total && <li>• All dependencies are up to date! 🎉</li>}
+                  {stats.current === stats.total && (
+                    <li>• All dependencies are up to date! 🎉</li>
+                  )}
                 </ul>
               </div>
             </div>
