@@ -236,7 +236,7 @@ export default function Home() {
       <div className="max-w-4xl mx-auto">
         <div className="text-center">
           <h1 className="text-3xl font-bold text-white mb-2">
-            Dependency Tracker
+            Dependency Checker
           </h1>
           <p className="text-gray-200 mb-8">
             Upload your dependency files to check for outdated packages
@@ -365,7 +365,7 @@ export default function Home() {
                 </div>
               </div>
 
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">
+              <h2 className="text-xl font-semibold text-gray-200 mb-4">
                 Dependency Analysis Results
               </h2>
               <div className="bg-white shadow overflow-hidden sm:rounded-lg">
