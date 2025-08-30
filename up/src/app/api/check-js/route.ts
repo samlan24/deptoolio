@@ -16,14 +16,10 @@ interface DependencyResult {
   latestStable: string;
   status: "current" | "outdated" | "major";
   isPrerelease: boolean;
-  lastCommitDate: string | null;
+
 
 }
 
-interface GitHubHealthMetrics {
-  lastCommitDate: string | null;
-
-}
 
 function extractGitHubRepoInfo(
   url: string
@@ -31,33 +27,6 @@ function extractGitHubRepoInfo(
   const match = url.match(/github\.com\/([^/]+)\/([^/.]+)(\.git)?/i);
   if (!match) return null;
   return { owner: match[1], repo: match[2] };
-}
-
-async function fetchGitHubHealthMetrics(
-  repoUrl: string,
-  token?: string
-): Promise<GitHubHealthMetrics> {
-  const repoInfo = extractGitHubRepoInfo(repoUrl);
-  if (!repoInfo) return { lastCommitDate: null};
-
-  const headers: Record<string, string> = {};
-  if (token) headers["Authorization"] = `token ${token}`;
-
-  const repoApiUrl = `https://api.github.com/repos/${repoInfo.owner}/${repoInfo.repo}`;
-  const repoResponse = await fetch(repoApiUrl, { headers });
-  if (!repoResponse.ok)
-    return { lastCommitDate: null };
-  const repoData = await repoResponse.json();
-  const branch = repoData.default_branch || "main";
-
-  const branchApiUrl = `https://api.github.com/repos/${repoInfo.owner}/${repoInfo.repo}/branches/${branch}`;
-  const branchResponse = await fetch(branchApiUrl, { headers });
-  if (!branchResponse.ok)
-    return { lastCommitDate: null};
-  const branchData = await branchResponse.json();
-  const lastCommitDate = branchData.commit?.commit?.committer?.date || null;
-
-  return { lastCommitDate};
 }
 
 // Helper function to parse version ranges
@@ -273,23 +242,6 @@ export async function POST(request: NextRequest) {
 
           const packageInfo = await response.json();
 
-          let healthMetrics: GitHubHealthMetrics = {
-            lastCommitDate: null,
-
-          };
-
-          if (packageInfo.repository && packageInfo.repository.url) {
-            const repoUrl = packageInfo.repository.url.replace(/^git\+/, "");
-            const githubToken = process.env.GITHUB_TOKEN; // Optional: set your token in environment variables
-            try {
-              healthMetrics = await fetchGitHubHealthMetrics(
-                repoUrl,
-                githubToken
-              );
-            } catch (error) {
-              console.log(`Error fetching GitHub metrics for ${name}:`, error);
-            }
-          }
 
           if (!packageInfo || typeof packageInfo !== "object") {
             console.log(`Skipping ${name}: invalid package info received`);
@@ -322,7 +274,6 @@ export async function POST(request: NextRequest) {
             latestStable: latestStable || latestVersion,
             status,
             isPrerelease: !!semver.prerelease(latestVersion),
-            lastCommitDate: healthMetrics.lastCommitDate,
           };
 
           return result;
