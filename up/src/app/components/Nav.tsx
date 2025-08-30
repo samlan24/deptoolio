@@ -65,7 +65,7 @@ const Navigation = () => {
                   Get Started Free
                 </Button>
               </Link>
-              <Link href="/signin">
+              <Link href="/login">
                 <Button variant="outline" className="btn-outline-hero text-sm px-6">
                   Sign In
                 </Button>

@@ -1,6 +1,6 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
+import { useState } from "react";
 import {
   CheckCircle,
   AlertCircle,
@@ -8,193 +8,213 @@ import {
   FileText,
   Package,
   Code,
-} from "lucide-react"
+} from "lucide-react";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "../components/ui/select";
 
 interface Repo {
-  id: number
-  name: string
-  full_name: string
-  description: string
-  updated_at: string
-  private: boolean
+  id: number;
+  name: string;
+  full_name: string;
+  description: string;
+  updated_at: string;
+  private: boolean;
 }
 
 interface PackageJsonFile {
-  name: string
-  path: string
-  html_url: string
+  name: string;
+  path: string;
+  html_url: string;
 }
 
 interface DependencyStatus {
-  name: string
-  currentVersion: string
-  latestVersion: string
-  latestStable: string
-  status: "current" | "outdated" | "major"
-  isPrerelease: boolean
-  operator?: string
-  extras?: string[]
-  lastCommitDate?: string | null
-  vulnerabilities?: { severity: string; title: string }[]
+  name: string;
+  currentVersion: string;
+  latestVersion: string;
+  latestStable: string;
+  status: "current" | "outdated" | "major";
+  isPrerelease: boolean;
+  operator?: string;
+  extras?: string[];
+  lastCommitDate?: string | null;
+  vulnerabilities?: { severity: string; title: string }[];
 }
 
 export default function RepoScanner() {
-  const [repos, setRepos] = useState<Repo[]>([])
-  const [selectedRepo, setSelectedRepo] = useState<Repo | null>(null)
-  const [packageJsonFiles, setPackageJsonFiles] = useState<PackageJsonFile[]>([])
-  const [selectedFile, setSelectedFile] = useState<PackageJsonFile | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [searching, setSearching] = useState(false)
-  const [scanning, setScanning] = useState(false)
-  const [results, setResults] = useState<DependencyStatus[]>([])
-  const [vulnerabilityLoading, setVulnerabilityLoading] = useState(false)
-  const [error, setError] = useState('')
+  const [repos, setRepos] = useState<Repo[]>([]);
+  const [selectedRepo, setSelectedRepo] = useState<Repo | null>(null);
+  const [packageJsonFiles, setPackageJsonFiles] = useState<PackageJsonFile[]>(
+    []
+  );
+  const [selectedFile, setSelectedFile] = useState<PackageJsonFile | null>(
+    null
+  );
+  const [loading, setLoading] = useState(false);
+  const [searching, setSearching] = useState(false);
+  const [scanning, setScanning] = useState(false);
+  const [results, setResults] = useState<DependencyStatus[]>([]);
+  const [vulnerabilityLoading, setVulnerabilityLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const fetchRepos = async () => {
-    setLoading(true)
-    setError('')
+    setLoading(true);
+    setError("");
     try {
-      const response = await fetch('/api/github/repos')
-      if (!response.ok) throw new Error('Failed to fetch repositories')
-      const data = await response.json()
-      setRepos(data)
+      const response = await fetch("/api/github/repos");
+      if (!response.ok) throw new Error("Failed to fetch repositories");
+      const data = await response.json();
+      setRepos(data);
     } catch (err) {
-      setError('Failed to load repositories. Make sure you signed in with GitHub.')
+      setError(
+        "Failed to load repositories. Make sure you signed in with GitHub."
+      );
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const searchPackageJsonFiles = async () => {
-    if (!selectedRepo) return
+    if (!selectedRepo) return;
 
-    setSearching(true)
-    setError('')
-    setPackageJsonFiles([])
-    setSelectedFile(null)
+    setSearching(true);
+    setError("");
+    setPackageJsonFiles([]);
+    setSelectedFile(null);
 
     try {
-      const [owner, repo] = selectedRepo.full_name.split('/')
-      const response = await fetch(`/api/github/file?owner=${owner}&repo=${repo}`)
+      const [owner, repo] = selectedRepo.full_name.split("/");
+      const response = await fetch(
+        `/api/github/file?owner=${owner}&repo=${repo}`
+      );
 
-      if (!response.ok) throw new Error('Failed to search for package.json files')
+      if (!response.ok)
+        throw new Error("Failed to search for package.json files");
 
-      const data = await response.json()
-      setPackageJsonFiles(data.files)
+      const data = await response.json();
+      setPackageJsonFiles(data.files);
 
       if (data.files.length === 0) {
-        setError('No package.json files found in this repository')
+        setError("No package.json files found in this repository");
       }
     } catch (err) {
-      setError('Failed to search for package.json files')
+      setError("Failed to search for package.json files");
     } finally {
-      setSearching(false)
+      setSearching(false);
     }
-  }
+  };
 
   const scanPackageJson = async () => {
-    if (!selectedRepo || !selectedFile) return
+    if (!selectedRepo || !selectedFile) return;
 
-    setScanning(true)
-    setError('')
-    setResults([])
+    setScanning(true);
+    setError("");
+    setResults([]);
 
     try {
-      const [owner, repo] = selectedRepo.full_name.split('/')
+      const [owner, repo] = selectedRepo.full_name.split("/");
 
       // Fetch the specific package.json file
-      const fileResponse = await fetch('/api/github/file', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const fileResponse = await fetch("/api/github/file", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           owner,
           repo,
-          path: selectedFile.path
-        })
-      })
+          path: selectedFile.path,
+        }),
+      });
 
       if (!fileResponse.ok) {
-        throw new Error('Failed to fetch package.json')
+        throw new Error("Failed to fetch package.json");
       }
 
-      const { content } = await fileResponse.json()
+      const { content } = await fileResponse.json();
 
       // Create a File object to send to your existing scan API
-      const file = new File([content], 'package.json', { type: 'application/json' })
-      const formData = new FormData()
-      formData.append('file', file)
+      const file = new File([content], "package.json", {
+        type: "application/json",
+      });
+      const formData = new FormData();
+      formData.append("file", file);
 
       // Use your existing scan API
-      const scanResponse = await fetch('/api/check-js', {
-        method: 'POST',
-        body: formData
-      })
+      const scanResponse = await fetch("/api/check-js", {
+        method: "POST",
+        body: formData,
+      });
 
       if (!scanResponse.ok) {
-        throw new Error('Failed to scan dependencies')
+        throw new Error("Failed to scan dependencies");
       }
 
-      const scanResults = await scanResponse.json()
-      setResults(scanResults)
+      const scanResults = await scanResponse.json();
+      setResults(scanResults);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to scan package.json')
+      setError(
+        err instanceof Error ? err.message : "Failed to scan package.json"
+      );
     } finally {
-      setScanning(false)
+      setScanning(false);
     }
-  }
+  };
 
   // Handle separate vulnerability scan
   const handleVulnerabilityScan = async () => {
     if (results.length === 0) {
-      alert("Please scan dependencies first.")
-      return
+      alert("Please scan dependencies first.");
+      return;
     }
-    setVulnerabilityLoading(true)
+    setVulnerabilityLoading(true);
 
-    const depsForScan: Record<string, string> = {}
+    const depsForScan: Record<string, string> = {};
     results.forEach((dep) => {
-      depsForScan[dep.name] = dep.currentVersion
-    })
+      depsForScan[dep.name] = dep.currentVersion;
+    });
 
     try {
       const response = await fetch("/api/check-js-vulnerabilities", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ dependencies: depsForScan }),
-      })
-      const data = await response.json()
+      });
+      const data = await response.json();
 
       if (data.error) {
-        alert(`Error: ${data.error}`)
-        return
+        alert(`Error: ${data.error}`);
+        return;
       }
 
-      const vulnsMap = new Map<string, { severity: string; title: string }[]>()
+      const vulnsMap = new Map<string, { severity: string; title: string }[]>();
       if (data.advisories) {
         for (const adv of Object.values<any>(data.advisories)) {
-          const pkgName = adv.module_name
+          const pkgName = adv.module_name;
           if (!vulnsMap.has(pkgName)) {
-            vulnsMap.set(pkgName, [])
+            vulnsMap.set(pkgName, []);
           }
           vulnsMap.get(pkgName)!.push({
             severity: adv.severity,
             title: adv.title,
-          })
+          });
         }
       }
 
       const updatedResults = results.map((dep) => ({
         ...dep,
         vulnerabilities: vulnsMap.get(dep.name) || [],
-      }))
-      setResults(updatedResults)
+      }));
+      setResults(updatedResults);
     } catch (error) {
-      console.error("Error fetching vulnerabilities:", error)
-      alert("Failed to scan vulnerabilities.")
+      console.error("Error fetching vulnerabilities:", error);
+      alert("Failed to scan vulnerabilities.");
     } finally {
-      setVulnerabilityLoading(false)
+      setVulnerabilityLoading(false);
     }
-  }
+  };
 
   // Status icon renderer
   const getStatusIcon = (status: string) => {
@@ -205,48 +225,48 @@ export default function RepoScanner() {
             className="w-5 h-5 text-green-500"
             aria-label="Current"
           />
-        )
+        );
       case "outdated":
         return (
           <AlertCircle
             className="w-5 h-5 text-yellow-500"
             aria-label="Outdated"
           />
-        )
+        );
       case "major":
         return (
           <XCircle
             className="w-5 h-5 text-red-500"
             aria-label="Major update needed"
           />
-        )
+        );
       default:
-        return null
+        return null;
     }
-  }
+  };
 
   // Summary statistics
   const getSummaryStats = () => {
-    const total = results.length
-    const current = results.filter((r) => r.status === "current").length
-    const outdated = results.filter((r) => r.status === "outdated").length
-    const major = results.filter((r) => r.status === "major").length
+    const total = results.length;
+    const current = results.filter((r) => r.status === "current").length;
+    const outdated = results.filter((r) => r.status === "outdated").length;
+    const major = results.filter((r) => r.status === "major").length;
 
-    return { total, current, outdated, major }
-  }
+    return { total, current, outdated, major };
+  };
 
-  const stats = getSummaryStats()
+  const stats = getSummaryStats();
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-4xl mx-auto p-6 space-y-6 bg-gray-900 rounded-lg shadow-lg">
       {/* GitHub Repository Selection */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <div className="text-center mb-6">
+      <div className="bg-white rounded-lg shadow p-6 text-black">
+        <div className="text-center mb-6 bg">
           <div className="flex items-center justify-center space-x-2 mb-4">
-            <Package className="w-8 h-8 text-green-600" />
-            <h2 className="text-2xl font-bold text-gray-900">GitHub Repository Scanner</h2>
+            <Package className="w-8 h-8 text-green-400" />
+            <h2 className="text-2xl font-bold">GitHub Repository Scanner</h2>
           </div>
-          <p className="text-gray-600">
+          <p className="text-gray-800">
             Connect to your GitHub repositories and scan package.json files
           </p>
         </div>
@@ -259,39 +279,42 @@ export default function RepoScanner() {
               className="px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? (
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-2 justify-center">
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                   <span>Loading Repositories...</span>
                 </div>
               ) : (
-                'Load My Repositories'
+                "Load My Repositories"
               )}
             </button>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-4 text-white">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-800 mb-2">
                 Select Repository
               </label>
-              <select
-                value={selectedRepo?.id || ''}
-                onChange={(e) => {
-                  const repo = repos.find(r => r.id === parseInt(e.target.value))
-                  setSelectedRepo(repo || null)
-                  setPackageJsonFiles([])
-                  setSelectedFile(null)
-                  setResults([])
+              <Select
+                value={selectedRepo?.id ? String(selectedRepo.id) : ""}
+                onValueChange={(value) => {
+                  const repo = repos.find((r) => r.id === parseInt(value));
+                  setSelectedRepo(repo || null);
+                  setPackageJsonFiles([]);
+                  setSelectedFile(null);
+                  setResults([]);
                 }}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
-                <option value="">Choose a repository...</option>
-                {repos.map(repo => (
-                  <option key={repo.id} value={repo.id}>
-                    {repo.name} {repo.private ? '(Private)' : '(Public)'}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger className="w-full bg-gray-700 text-white border border-gray-600 rounded-lg">
+                  <SelectValue placeholder="Choose a repository..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {repos.map((repo) => (
+                    <SelectItem key={repo.id} value={String(repo.id)}>
+                      {repo.name} {repo.private ? "(Private)" : "(Public)"}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {selectedRepo && (
@@ -301,29 +324,34 @@ export default function RepoScanner() {
                   disabled={searching}
                   className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
                 >
-                  {searching ? 'Searching...' : 'Find package.json files'}
+                  {searching ? "Searching..." : "Find package.json files"}
                 </button>
 
                 {packageJsonFiles.length > 0 && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-800 mb-2">
                       Select package.json file
                     </label>
-                    <select
-                      value={selectedFile?.path || ''}
-                      onChange={(e) => {
-                        const file = packageJsonFiles.find(f => f.path === e.target.value)
-                        setSelectedFile(file || null)
+                    <Select
+                      value={selectedFile?.path || ""}
+                      onValueChange={(value) => {
+                        const file = packageJsonFiles.find(
+                          (f) => f.path === value
+                        );
+                        setSelectedFile(file || null);
                       }}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     >
-                      <option value="">Choose a package.json file...</option>
-                      {packageJsonFiles.map(file => (
-                        <option key={file.path} value={file.path}>
-                          {file.path}
-                        </option>
-                      ))}
-                    </select>
+                      <SelectTrigger className="w-full bg-gray-700 text-white border border-gray-600 rounded-lg">
+                        <SelectValue placeholder="Choose a package.json file..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {packageJsonFiles.map((file) => (
+                          <SelectItem key={file.path} value={file.path}>
+                            {file.path}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 )}
 
@@ -334,7 +362,7 @@ export default function RepoScanner() {
                     className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
                   >
                     {scanning ? (
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center space-x-2 justify-center">
                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                         <span>Scanning Dependencies...</span>
                       </div>
@@ -349,16 +377,15 @@ export default function RepoScanner() {
         )}
 
         {error && (
-          <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-red-700">{error}</p>
+          <div className="mt-4 p-4 bg-red-700 border border-red-600 rounded-lg text-red-200">
+            <p>{error}</p>
           </div>
         )}
       </div>
 
-      {/* Results Section - Matching your existing UI exactly */}
+      {/* Results Section */}
       {results.length > 0 && (
         <>
-          {/* Vulnerability Scan Button */}
           <div className="text-right">
             <button
               onClick={handleVulnerabilityScan}
@@ -371,7 +398,6 @@ export default function RepoScanner() {
             </button>
           </div>
 
-          {/* Summary Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             <div className="bg-white rounded-lg shadow p-4 text-center">
               <div className="text-2xl font-bold text-gray-900">
@@ -402,6 +428,7 @@ export default function RepoScanner() {
           <h2 className="text-xl font-semibold text-gray-900 mb-4">
             Dependency Analysis Results
           </h2>
+
           <div className="bg-white shadow overflow-hidden sm:rounded-lg">
             <ul className="divide-y divide-gray-200">
               {results.map((dep, index) => (
@@ -429,20 +456,21 @@ export default function RepoScanner() {
                           </p>
                         )}
 
-                        {dep.vulnerabilities && dep.vulnerabilities.length > 0 && (
-                          <div className="mt-1">
-                            <span className="text-xs font-semibold text-red-600">
-                              Vulnerabilities:
-                            </span>
-                            <ul className="text-xs text-red-500 list-disc list-inside">
-                              {dep.vulnerabilities.map((vuln, i) => (
-                                <li key={i} title={vuln.title}>
-                                  [{vuln.severity.toUpperCase()}] {vuln.title}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
+                        {dep.vulnerabilities &&
+                          dep.vulnerabilities.length > 0 && (
+                            <div className="mt-1">
+                              <span className="text-xs font-semibold text-red-600">
+                                Vulnerabilities:
+                              </span>
+                              <ul className="text-xs text-red-500 list-disc list-inside">
+                                {dep.vulnerabilities.map((vuln, i) => (
+                                  <li key={i} title={vuln.title}>
+                                    [{vuln.severity.toUpperCase()}] {vuln.title}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
                       </div>
                     </div>
                     <span
@@ -488,5 +516,5 @@ export default function RepoScanner() {
         </>
       )}
     </div>
-  )
+  );
 }
