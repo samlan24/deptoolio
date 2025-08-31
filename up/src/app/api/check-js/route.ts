@@ -16,10 +16,9 @@ interface DependencyResult {
   latestStable: string;
   status: "current" | "outdated" | "major";
   isPrerelease: boolean;
-
-
+  maintainersCount?: number; // New field for number of maintainers
+  lastUpdate?: string | null; // New field for last update date (ISO string)
 }
-
 
 function extractGitHubRepoInfo(
   url: string
@@ -241,7 +240,11 @@ export async function POST(request: NextRequest) {
           }
 
           const packageInfo = await response.json();
+          const maintainersCount = Array.isArray(packageInfo.maintainers)
+            ? packageInfo.maintainers.length
+            : 0;
 
+          const lastUpdate = packageInfo.time?.latest || null;
 
           if (!packageInfo || typeof packageInfo !== "object") {
             console.log(`Skipping ${name}: invalid package info received`);
@@ -274,6 +277,8 @@ export async function POST(request: NextRequest) {
             latestStable: latestStable || latestVersion,
             status,
             isPrerelease: !!semver.prerelease(latestVersion),
+            maintainersCount,
+            lastUpdate,
           };
 
           return result;
