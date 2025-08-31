@@ -1,9 +1,9 @@
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
-import { NextRequest, NextResponse } from 'next/server'
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
+import { NextRequest, NextResponse } from "next/server";
 
 async function createClient() {
-  const cookieStore = await cookies()
+  const cookieStore = await cookies();
 
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -11,110 +11,184 @@ async function createClient() {
     {
       cookies: {
         getAll() {
-          return cookieStore.getAll()
+          return cookieStore.getAll();
         },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value, options }) => {
-            cookieStore.set(name, value, options)
-          })
+            cookieStore.set(name, value, options);
+          });
         },
       },
     }
-  )
+  );
 }
 
 // Function to search for package.json files in the repository
-async function findPackageJsonFiles(owner: string, repo: string, token: string) {
-  const response = await fetch(
-    `https://api.github.com/search/code?q=filename:package.json+repo:${owner}/${repo}`,
-    {
-      headers: {
-        'Authorization': `token ${token}`,
-        'Accept': 'application/vnd.github.v3+json',
-        'User-Agent': 'dependency-scanner/1.0'
-      }
-    }
-  )
+// Replace your findPackageJsonFiles function with this:
+async function findDependencyFiles(owner: string, repo: string, token: string) {
+  // Search for multiple dependency file types
+  const queries = [
+    `filename:package.json repo:${owner}/${repo}`,
+    `filename:requirements.txt repo:${owner}/${repo}`,
+    `filename:Pipfile repo:${owner}/${repo}`,
+    `filename:pyproject.toml repo:${owner}/${repo}`,
+  ];
 
-  if (!response.ok) {
-    throw new Error(`Search failed: ${response.status}`)
+  const allFiles = [];
+
+  for (const query of queries) {
+    try {
+      const response = await fetch(
+        `https://api.github.com/search/code?q=${encodeURIComponent(query)}`,
+        {
+          headers: {
+            Authorization: `token ${token}`,
+            Accept: "application/vnd.github.v3+json",
+            "User-Agent": "dependency-scanner/1.0",
+          },
+        }
+      );
+
+      if (response.ok) {
+        const searchResult = await response.json();
+        if (searchResult.items) {
+          allFiles.push(...searchResult.items);
+        }
+      }
+    } catch (error) {
+      console.error(`Error searching for ${query}:`, error);
+    }
   }
 
-  const searchResult = await response.json()
-  return searchResult.items || []
+  return allFiles;
+}
+
+// Add this function before your GET handler:
+function getFileType(filename: string): "npm" | "python" | "unknown" {
+  const lowercaseName = filename.toLowerCase();
+
+  if (lowercaseName.includes("package.json")) {
+    return "npm";
+  }
+
+  if (
+    lowercaseName.includes("requirements") ||
+    lowercaseName.includes("pipfile") ||
+    lowercaseName.includes("pyproject.toml")
+  ) {
+    return "python";
+  }
+
+  return "unknown";
 }
 
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url)
-    const owner = searchParams.get('owner')
-    const repo = searchParams.get('repo')
+    const { searchParams } = new URL(request.url);
+    const owner = searchParams.get("owner");
+    const repo = searchParams.get("repo");
 
     if (!owner || !repo) {
-      return NextResponse.json({ error: 'Owner and repo are required' }, { status: 400 })
+      return NextResponse.json(
+        { error: "Owner and repo are required" },
+        { status: 400 }
+      );
     }
 
-    const supabase = await createClient()
-    const { data: { session } } = await supabase.auth.getSession()
+    const supabase = await createClient();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
 
     if (!session?.provider_token) {
-      return NextResponse.json({ error: 'GitHub token not found' }, { status: 401 })
+      return NextResponse.json(
+        { error: "GitHub token not found" },
+        { status: 401 }
+      );
     }
 
-    const packageJsonFiles = await findPackageJsonFiles(owner, repo, session.provider_token)
+    const dependencyFiles = await findDependencyFiles(
+      owner,
+      repo,
+      session.provider_token
+    );
 
-    return NextResponse.json({ files: packageJsonFiles })
+    return NextResponse.json({ files: dependencyFiles });
   } catch (error) {
-    console.error('Error searching for package.json files:', error)
-    return NextResponse.json({ error: 'Failed to search for package.json files' }, { status: 500 })
+    console.error("Error searching for dependency files:", error);
+    return NextResponse.json(
+      { error: "Failed to search for dependency files" },
+      { status: 500 }
+    );
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const { owner, repo, path = 'package.json' } = await request.json()
+    const { owner, repo, path = "package.json" } = await request.json();
 
     if (!owner || !repo) {
-      return NextResponse.json({ error: 'Owner and repo are required' }, { status: 400 })
+      return NextResponse.json(
+        { error: "Owner and repo are required" },
+        { status: 400 }
+      );
     }
 
-    const supabase = await createClient()
-    const { data: { session } } = await supabase.auth.getSession()
+    const supabase = await createClient();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
 
     if (!session?.provider_token) {
-      return NextResponse.json({ error: 'GitHub token not found' }, { status: 401 })
+      return NextResponse.json(
+        { error: "GitHub token not found" },
+        { status: 401 }
+      );
     }
 
     const response = await fetch(
       `https://api.github.com/repos/${owner}/${repo}/contents/${path}`,
       {
         headers: {
-          'Authorization': `token ${session.provider_token}`,
-          'Accept': 'application/vnd.github.v3+json',
-          'User-Agent': 'dependency-scanner/1.0'
-        }
+          Authorization: `token ${session.provider_token}`,
+          Accept: "application/vnd.github.v3+json",
+          "User-Agent": "dependency-scanner/1.0",
+        },
       }
-    )
+    );
 
     if (!response.ok) {
       if (response.status === 404) {
-        return NextResponse.json({ error: 'package.json not found at this path' }, { status: 404 })
+        return NextResponse.json(
+          { error: "package.json not found at this path" },
+          { status: 404 }
+        );
       }
-      return NextResponse.json({ error: 'Failed to fetch file' }, { status: response.status })
+      return NextResponse.json(
+        { error: "Failed to fetch file" },
+        { status: response.status }
+      );
     }
 
-    const fileData = await response.json()
+    const fileData = await response.json();
 
-    if (fileData.type !== 'file') {
-      return NextResponse.json({ error: 'Path is not a file' }, { status: 400 })
+    if (fileData.type !== "file") {
+      return NextResponse.json(
+        { error: "Path is not a file" },
+        { status: 400 }
+      );
     }
 
     // Decode base64 content
-    const content = Buffer.from(fileData.content, 'base64').toString('utf-8')
+    const content = Buffer.from(fileData.content, "base64").toString("utf-8");
+    const fileType = getFileType(path);
 
-    return NextResponse.json({ content, sha: fileData.sha, path })
+    return NextResponse.json({ content, sha: fileData.sha, path, fileType });
   } catch (error) {
-    console.error('Error fetching file:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    console.error("Error fetching file:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
 }

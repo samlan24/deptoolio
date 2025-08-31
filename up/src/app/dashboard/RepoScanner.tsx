@@ -62,6 +62,9 @@ export default function RepoScanner() {
   const [results, setResults] = useState<DependencyStatus[]>([]);
   const [vulnerabilityLoading, setVulnerabilityLoading] = useState(false);
   const [error, setError] = useState("");
+  const [fileType, setFileType] = useState<"javascript" | "python">(
+    "javascript"
+  );
 
   const fetchRepos = async () => {
     setLoading(true);
@@ -80,7 +83,7 @@ export default function RepoScanner() {
     }
   };
 
-  const searchPackageJsonFiles = async () => {
+  const searchDependencyFiles = async () => {
     if (!selectedRepo) return;
 
     setSearching(true);
@@ -95,16 +98,30 @@ export default function RepoScanner() {
       );
 
       if (!response.ok)
-        throw new Error("Failed to search for package.json files");
+        throw new Error("Failed to search for dependency files");
 
       const data = await response.json();
-      setPackageJsonFiles(data.files);
 
-      if (data.files.length === 0) {
-        setError("No package.json files found in this repository");
+      // Filter files based on selected file type
+      const filteredFiles = data.files.filter((file: any) => {
+        if (fileType === "javascript") {
+          return file.name.toLowerCase().includes("package.json");
+        } else {
+          return (
+            file.name.toLowerCase().includes("requirements") ||
+            file.name.toLowerCase().includes("pipfile") ||
+            file.name.toLowerCase().includes("pyproject.toml")
+          );
+        }
+      });
+
+      setPackageJsonFiles(filteredFiles);
+
+      if (filteredFiles.length === 0) {
+        setError(`No ${fileType} dependency files found in this repository`);
       }
     } catch (err) {
-      setError("Failed to search for package.json files");
+      setError("Failed to search for dependency files");
     } finally {
       setSearching(false);
     }
@@ -120,7 +137,7 @@ export default function RepoScanner() {
     try {
       const [owner, repo] = selectedRepo.full_name.split("/");
 
-      // Fetch the specific package.json file
+      // Fetch the specific file
       const fileResponse = await fetch("/api/github/file", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -132,23 +149,41 @@ export default function RepoScanner() {
       });
 
       if (!fileResponse.ok) {
-        throw new Error("Failed to fetch package.json");
+        throw new Error(`Failed to fetch ${selectedFile.path}`);
       }
 
-      const { content } = await fileResponse.json();
+      const { content, fileType: detectedFileType } = await fileResponse.json();
 
-      // Create a File object to send to your existing scan API
-      const file = new File([content], "package.json", {
-        type: "application/json",
-      });
-      const formData = new FormData();
-      formData.append("file", file);
+      // Create appropriate file and choose API endpoint
+      let file, scanResponse;
 
-      // Use your existing scan API
-      const scanResponse = await fetch("/api/check-js", {
-        method: "POST",
-        body: formData,
-      });
+      if (fileType === "python") {
+        file = new File(
+          [content],
+          selectedFile.path.split("/").pop() || "requirements.txt",
+          {
+            type: "text/plain",
+          }
+        );
+        const formData = new FormData();
+        formData.append("file", file);
+
+        scanResponse = await fetch("/api/check-python", {
+          method: "POST",
+          body: formData,
+        });
+      } else {
+        file = new File([content], "package.json", {
+          type: "application/json",
+        });
+        const formData = new FormData();
+        formData.append("file", file);
+
+        scanResponse = await fetch("/api/check-js", {
+          method: "POST",
+          body: formData,
+        });
+      }
 
       if (!scanResponse.ok) {
         throw new Error("Failed to scan dependencies");
@@ -159,7 +194,7 @@ export default function RepoScanner() {
       saveScanToHistory(selectedRepo, selectedFile, scanResults);
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Failed to scan package.json"
+        err instanceof Error ? err.message : "Failed to scan dependencies"
       );
     } finally {
       setScanning(false);
@@ -392,6 +427,7 @@ export default function RepoScanner() {
                 onValueChange={(value) => {
                   const repo = repos.find((r) => r.id === parseInt(value));
                   setSelectedRepo(repo || null);
+                  setFileType("javascript");
                   setPackageJsonFiles([]);
                   setSelectedFile(null);
                   setResults([]);
@@ -411,59 +447,93 @@ export default function RepoScanner() {
             </div>
 
             {selectedRepo && (
-              <div className="space-y-3">
-                <button
-                  onClick={searchPackageJsonFiles}
-                  disabled={searching}
-                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
-                >
-                  {searching ? "Searching..." : "Find package.json files"}
-                </button>
-
-                {packageJsonFiles.length > 0 && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-800 mb-2">
-                      Select package.json file
-                    </label>
-                    <Select
-                      value={selectedFile?.path || ""}
-                      onValueChange={(value) => {
-                        const file = packageJsonFiles.find(
-                          (f) => f.path === value
-                        );
-                        setSelectedFile(file || null);
-                      }}
-                    >
-                      <SelectTrigger className="w-full bg-gray-700 text-white border border-gray-600 rounded-lg">
-                        <SelectValue placeholder="Choose a package.json file..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {packageJsonFiles.map((file) => (
-                          <SelectItem key={file.path} value={file.path}>
-                            {file.path}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-
-                {selectedFile && (
+              <div>
+                <label className="block text-sm font-medium text-gray-800 mb-2">
+                  File Type to Search
+                </label>
+                <div className="flex space-x-4 mb-4">
                   <button
-                    onClick={scanPackageJson}
-                    disabled={scanning}
-                    className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+                    onClick={() => setFileType("javascript")}
+                    className={`px-4 py-2 rounded-lg ${
+                      fileType === "javascript"
+                        ? "bg-blue-600 text-white"
+                        : "bg-gray-200 text-gray-700"
+                    }`}
                   >
-                    {scanning ? (
-                      <div className="flex items-center space-x-2 justify-center">
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                        <span>Scanning Dependencies...</span>
-                      </div>
-                    ) : (
-                      `Scan ${selectedFile.path}`
-                    )}
+                    JavaScript (package.json)
                   </button>
-                )}
+                  <button
+                    onClick={() => setFileType("python")}
+                    className={`px-4 py-2 rounded-lg ${
+                      fileType === "python"
+                        ? "bg-blue-600 text-white"
+                        : "bg-gray-200 text-gray-700"
+                    }`}
+                  >
+                    Python (requirements.txt, etc.)
+                  </button>
+                </div>
+
+                <div className="space-y-3">
+                  <button
+                    onClick={searchDependencyFiles}
+                    disabled={searching}
+                    className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
+                  >
+                    {searching ? "Searching..." : `Find ${fileType} files`}
+                  </button>
+
+                  {packageJsonFiles.length > 0 && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-800 mb-2">
+                        Select{" "}
+                        {fileType === "javascript"
+                          ? "package.json"
+                          : "dependency"}{" "}
+                        file
+                      </label>
+                      <Select
+                        value={selectedFile?.path || ""}
+                        onValueChange={(value) => {
+                          const file = packageJsonFiles.find(
+                            (f) => f.path === value
+                          );
+                          setSelectedFile(file || null);
+                        }}
+                      >
+                        <SelectTrigger className="w-full bg-gray-700 text-white border border-gray-600 rounded-lg">
+                          <SelectValue
+                            placeholder={`Choose a ${fileType} file...`}
+                          />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {packageJsonFiles.map((file) => (
+                            <SelectItem key={file.path} value={file.path}>
+                              {file.path}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
+                  {selectedFile && (
+                    <button
+                      onClick={scanPackageJson}
+                      disabled={scanning}
+                      className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+                    >
+                      {scanning ? (
+                        <div className="flex items-center space-x-2 justify-center">
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                          <span>Scanning Dependencies...</span>
+                        </div>
+                      ) : (
+                        `Scan ${selectedFile.path}`
+                      )}
+                    </button>
+                  )}
+                </div>
               </div>
             )}
           </div>
