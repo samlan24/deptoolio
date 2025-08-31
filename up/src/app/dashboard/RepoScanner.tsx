@@ -585,24 +585,11 @@ export default function RepoScanner() {
                     <div className="flex items-center space-x-3">
                       {getStatusIcon(dep.status)}
                       <div>
-                        <h3 className="text-sm font-medium text-gray-900 flex flex-col space-y-1">
-                          <span className="flex items-center space-x-2">
-                            <span>{dep.name}</span>
-                            {dep.extras && dep.extras.length > 0 && (
-                              <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
-                                [{dep.extras.join(", ")}]
-                              </span>
-                            )}
-                          </span>
-                          {typeof dep.maintainersCount === "number" && (
-                            <span className="text-xs text-gray-500">
-                              Maintainers: {dep.maintainersCount}
-                            </span>
-                          )}
-                          {dep.lastUpdate && (
-                            <span className="text-xs text-gray-500">
-                              Last Update:{" "}
-                              {new Date(dep.lastUpdate).toLocaleDateString()}
+                        <h3 className="text-sm font-medium text-gray-900 flex items-center space-x-2">
+                          <span>{dep.name}</span>
+                          {dep.extras && dep.extras.length > 0 && (
+                            <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
+                              [{dep.extras.join(", ")}]
                             </span>
                           )}
                         </h3>
@@ -611,11 +598,17 @@ export default function RepoScanner() {
                           Your version: {dep.currentVersion} → Latest:{" "}
                           {dep.latestVersion}
                         </p>
-                        {dep.lastCommitDate && (
-                          <p className="text-xs text-gray-400 mt-1">
-                            Last Commit:{" "}
-                            {new Date(dep.lastCommitDate).toLocaleDateString()}
-                          </p>
+
+                        {typeof dep.maintainersCount === "number" && (
+                          <span className="text-xs text-gray-500 block">
+                            Collaborators: {dep.maintainersCount}
+                          </span>
+                        )}
+                        {dep.lastUpdate && (
+                          <span className="text-xs text-gray-500 block">
+                            Last Update:{" "}
+                            {new Date(dep.lastUpdate).toLocaleDateString()}
+                          </span>
                         )}
 
                         {dep.vulnerabilities &&
