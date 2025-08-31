@@ -1,6 +1,5 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
-import RepoScanner from './RepoScanner'
 
 
 async function createClient() {
@@ -37,8 +36,6 @@ export default async function Dashboard() {
       </div>
 
     </div>
-
-    <RepoScanner />
   </div>
 );
 }

@@ -386,6 +386,15 @@ export default function RepoScanner() {
   };
 
   return (
+    <div className="min-h-screen pt-20 space-y-6">
+      <div className="max-w-4xl mx-auto px-6">
+        <h1 className="text-3xl font-bold mb-2 text-white text-center">
+          Repository Dependency Scanner
+        </h1>
+        <p className="text-gray-400 text-center">
+          Scan your GitHub repositories for outdated dependencies
+        </p>
+      </div>
     <div className="max-w-4xl mx-auto p-6 space-y-6 bg-gray-900 rounded-lg shadow-lg">
       {/* GitHub Repository Selection */}
       <div className="bg-white rounded-lg shadow p-6 text-black">
@@ -740,6 +749,7 @@ export default function RepoScanner() {
           </div>
         </>
       )}
+    </div>
     </div>
   );
 }

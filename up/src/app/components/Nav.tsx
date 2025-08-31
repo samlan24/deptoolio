@@ -118,6 +118,12 @@ const Navigation = () => {
                 >
                   File Checks
                 </Link>
+                <Link
+                  href="/repo-scanner"
+                  className="text-muted-foreground hover:text-foreground transition-colors text-sm font-medium"
+                >
+                  Repo Checks
+                </Link>
 
                 {/* User Menu */}
                 <div className="flex items-center space-x-3">
@@ -225,6 +231,13 @@ const Navigation = () => {
                       onClick={closeMenu}
                     >
                       File Checks
+                    </Link>
+                    <Link
+                      href="/repo-scanner"
+                      className="text-muted-foreground hover:text-foreground transition-colors text-sm font-medium py-2"
+                      onClick={closeMenu}
+                    >
+                      Repo Checks
                     </Link>
                     <div className="pt-4 border-t border-border/50 space-y-3">
                       <div className="text-sm text-muted-foreground py-2">

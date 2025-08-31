@@ -307,7 +307,7 @@ export default function Home() {
                 {user ? (
                   /* Logged IN users - Show Dashboard access */
                   <div className="flex gap-3">
-                    <Link href="/dashboard">
+                    <Link href="/repo-scanner">
                       <button className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium">
                         <Package className="w-5 h-5" />
                         Scan GitHub Repos
