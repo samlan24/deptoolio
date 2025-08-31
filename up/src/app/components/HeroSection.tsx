@@ -8,10 +8,10 @@ import {
   JavascriptOriginal,
   PythonOriginal,
   GoOriginal,
-  RustOriginal,
   PhpOriginal,
   NodejsOriginal,
-  RubyOriginal,
+  JavaPlain
+
 } from "devicons-react";
 
 const HeroSection = () => {
@@ -95,10 +95,9 @@ const HeroSection = () => {
               <JavascriptOriginal size={30} />
               <PythonOriginal size={30} />
               <GoOriginal size={30} />
-              <RustOriginal size={30} />
+              <JavaPlain size={30} />
               <PhpOriginal size={30} />
               <NodejsOriginal size={30} />
-              <RubyOriginal size={30} />
             </div>
           </div>
         </div>
