@@ -10,7 +10,7 @@ export default function LoginPage() {
       provider: 'github',
       options: {
         redirectTo: `${location.origin}/dashboard`,
-        scopes: 'read:user user:email repo'  // Add this line
+        scopes: 'read:user user:email repo'
       }
     })
   }
