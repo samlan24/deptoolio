@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
-import pMap from 'p-map';
+import { NextRequest, NextResponse } from "next/server";
+import pMap from "p-map";
 
 interface PythonVersionSpec {
   name: string;
@@ -12,15 +12,22 @@ interface PythonDependencyResult {
   name: string;
   currentVersion: string;
   latestVersion: string;
-  status: 'current' | 'outdated' | 'major';
+  status: "current" | "outdated" | "major";
   operator: string;
   extras?: string[];
+  lastUpdate?: string | null;
+  maintainersCount?: number;
 }
 
 interface PyPIPackageInfo {
   info: {
     version: string;
     name: string;
+    maintainers?: Array<{ name: string; email?: string }>;
+    author?: string;
+    maintainer?: string;
+    author_email?: string;
+    maintainer_email?: string;
   };
   releases: Record<string, any>;
 }
@@ -28,19 +35,24 @@ interface PyPIPackageInfo {
 // Helper function to parse requirements.txt line
 function parseRequirementLine(line: string): PythonVersionSpec | null {
   // Remove comments and whitespace
-  const cleanLine = line.split('#')[0].trim();
+  const cleanLine = line.split("#")[0].trim();
 
-  if (!cleanLine ||
-      cleanLine.startsWith('-') || // Skip -r, -c, -e flags
-      cleanLine.startsWith('http') || // Skip URLs
-      cleanLine.startsWith('git+') || // Skip git dependencies
-      cleanLine.includes('://')) { // Skip other URLs
+  if (
+    !cleanLine ||
+    cleanLine.startsWith("-") || // Skip -r, -c, -e flags
+    cleanLine.startsWith("http") || // Skip URLs
+    cleanLine.startsWith("git+") || // Skip git dependencies
+    cleanLine.includes("://")
+  ) {
+    // Skip other URLs
     return null;
   }
 
   // Match package name with optional extras and version specifier
   // Examples: requests>=2.0.0, flask[async]==2.0.0, numpy~=1.21.0
-  const match = cleanLine.match(/^([a-zA-Z0-9\-_\.]+)(\[([^\]]+)\])?([><=!~]+)(.+)$/);
+  const match = cleanLine.match(
+    /^([a-zA-Z0-9\-_\.]+)(\[([^\]]+)\])?([><=!~]+)(.+)$/
+  );
 
   if (!match) {
     // Try matching just package name without version (like "requests")
@@ -48,9 +60,11 @@ function parseRequirementLine(line: string): PythonVersionSpec | null {
     if (nameMatch) {
       return {
         name: nameMatch[1],
-        operator: '>=',
-        version: '0.0.0',
-        extras: nameMatch[3] ? nameMatch[3].split(',').map(e => e.trim()) : undefined
+        operator: ">=",
+        version: "0.0.0",
+        extras: nameMatch[3]
+          ? nameMatch[3].split(",").map((e) => e.trim())
+          : undefined,
       };
     }
     return null;
@@ -60,7 +74,7 @@ function parseRequirementLine(line: string): PythonVersionSpec | null {
     name: match[1],
     operator: match[4],
     version: match[5].trim(),
-    extras: match[3] ? match[3].split(',').map(e => e.trim()) : undefined
+    extras: match[3] ? match[3].split(",").map((e) => e.trim()) : undefined,
   };
 }
 
@@ -70,43 +84,43 @@ function parsePipfile(content: string): PythonVersionSpec[] {
 
   try {
     // Simple TOML parsing for Pipfile - in production, use a proper TOML parser
-    const lines = content.split('\n');
+    const lines = content.split("\n");
     let inPackagesSection = false;
     let inDevPackagesSection = false;
 
     for (const line of lines) {
       const trimmed = line.trim();
 
-      if (trimmed === '[packages]') {
+      if (trimmed === "[packages]") {
         inPackagesSection = true;
         inDevPackagesSection = false;
         continue;
       }
 
-      if (trimmed === '[dev-packages]') {
+      if (trimmed === "[dev-packages]") {
         inPackagesSection = true; // Include dev dependencies
         inDevPackagesSection = true;
         continue;
       }
 
-      if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+      if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
         inPackagesSection = false;
         inDevPackagesSection = false;
         continue;
       }
 
-      if (inPackagesSection && trimmed.includes('=')) {
+      if (inPackagesSection && trimmed.includes("=")) {
         // Parse lines like: requests = ">=2.0.0" or numpy = "*"
         const match = trimmed.match(/^([a-zA-Z0-9\-_\.]+)\s*=\s*"([^"]+)"/);
         if (match) {
           const packageName = match[1];
           const versionSpec = match[2];
 
-          if (versionSpec === '*') {
+          if (versionSpec === "*") {
             dependencies.push({
               name: packageName,
-              operator: '>=',
-              version: '0.0.0'
+              operator: ">=",
+              version: "0.0.0",
             });
           } else {
             // Parse version specifiers like ">=2.0.0", "~=2.0.0"
@@ -115,7 +129,7 @@ function parsePipfile(content: string): PythonVersionSpec[] {
               dependencies.push({
                 name: packageName,
                 operator: versionMatch[1],
-                version: versionMatch[2]
+                version: versionMatch[2],
               });
             }
           }
@@ -123,7 +137,7 @@ function parsePipfile(content: string): PythonVersionSpec[] {
       }
     }
   } catch (error) {
-    console.error('Error parsing Pipfile:', error);
+    console.error("Error parsing Pipfile:", error);
   }
 
   return dependencies;
@@ -135,25 +149,27 @@ function parsePyprojectToml(content: string): PythonVersionSpec[] {
 
   try {
     // Simple parsing for pyproject.toml - in production, use a proper TOML parser
-    const lines = content.split('\n');
+    const lines = content.split("\n");
     let inDependenciesSection = false;
 
     for (const line of lines) {
       const trimmed = line.trim();
 
-      if (trimmed.includes('[tool.poetry.dependencies]') ||
-          trimmed.includes('[project]') ||
-          trimmed.includes('dependencies = [')) {
+      if (
+        trimmed.includes("[tool.poetry.dependencies]") ||
+        trimmed.includes("[project]") ||
+        trimmed.includes("dependencies = [")
+      ) {
         inDependenciesSection = true;
         continue;
       }
 
-      if (trimmed.startsWith('[') && !trimmed.includes('dependencies')) {
+      if (trimmed.startsWith("[") && !trimmed.includes("dependencies")) {
         inDependenciesSection = false;
         continue;
       }
 
-      if (inDependenciesSection && trimmed.includes('=')) {
+      if (inDependenciesSection && trimmed.includes("=")) {
         // Parse lines like: requests = "^2.0.0" or "numpy>=1.21.0"
         let match = trimmed.match(/^([a-zA-Z0-9\-_\.]+)\s*=\s*"([^"]+)"/);
 
@@ -163,44 +179,48 @@ function parsePyprojectToml(content: string): PythonVersionSpec[] {
           if (match) {
             dependencies.push({
               name: match[1],
-              operator: match[2].replace('^', '>='), // Convert poetry ^ to >=
-              version: match[3]
+              operator: match[2].replace("^", ">="), // Convert poetry ^ to >=
+              version: match[3],
             });
           }
         } else {
           const packageName = match[1];
           const versionSpec = match[2];
 
-          if (packageName === 'python') continue; // Skip python version requirement
+          if (packageName === "python") continue; // Skip python version requirement
 
           // Handle poetry version specifiers
           const versionMatch = versionSpec.match(/^([\^~><=!]+)(.+)$/);
           if (versionMatch) {
             let operator = versionMatch[1];
             // Convert poetry ^ to >= for simplicity
-            if (operator === '^') operator = '>=';
+            if (operator === "^") operator = ">=";
 
             dependencies.push({
               name: packageName,
               operator: operator,
-              version: versionMatch[2]
+              version: versionMatch[2],
             });
           }
         }
       }
     }
   } catch (error) {
-    console.error('Error parsing pyproject.toml:', error);
+    console.error("Error parsing pyproject.toml:", error);
   }
 
   return dependencies;
 }
 
 // Helper function to compare Python versions
-function comparePythonVersions(current: string, latest: string, operator: string): 'current' | 'outdated' | 'major' {
+function comparePythonVersions(
+  current: string,
+  latest: string,
+  operator: string
+): "current" | "outdated" | "major" {
   // Simple version comparison - in production, use a proper Python version parser
   const parseVersion = (v: string) => {
-    const parts = v.split('.').map(n => parseInt(n) || 0);
+    const parts = v.split(".").map((n) => parseInt(n) || 0);
     return { major: parts[0] || 0, minor: parts[1] || 0, patch: parts[2] || 0 };
   };
 
@@ -211,48 +231,68 @@ function comparePythonVersions(current: string, latest: string, operator: string
   let satisfiesRequirement = false;
 
   switch (operator) {
-    case '==':
+    case "==":
       satisfiesRequirement = current === latest;
       break;
-    case '>=':
-      satisfiesRequirement = (currentVer.major > latestVer.major) ||
-                           (currentVer.major === latestVer.major && currentVer.minor > latestVer.minor) ||
-                           (currentVer.major === latestVer.major && currentVer.minor === latestVer.minor && currentVer.patch >= latestVer.patch);
+    case ">=":
+      satisfiesRequirement =
+        currentVer.major > latestVer.major ||
+        (currentVer.major === latestVer.major &&
+          currentVer.minor > latestVer.minor) ||
+        (currentVer.major === latestVer.major &&
+          currentVer.minor === latestVer.minor &&
+          currentVer.patch >= latestVer.patch);
       break;
-    case '>':
-      satisfiesRequirement = (currentVer.major > latestVer.major) ||
-                           (currentVer.major === latestVer.major && currentVer.minor > latestVer.minor) ||
-                           (currentVer.major === latestVer.major && currentVer.minor === latestVer.minor && currentVer.patch > latestVer.patch);
+    case ">":
+      satisfiesRequirement =
+        currentVer.major > latestVer.major ||
+        (currentVer.major === latestVer.major &&
+          currentVer.minor > latestVer.minor) ||
+        (currentVer.major === latestVer.major &&
+          currentVer.minor === latestVer.minor &&
+          currentVer.patch > latestVer.patch);
       break;
-    case '~=':
+    case "~=":
       // Compatible release - same major.minor, patch can be higher
-      satisfiesRequirement = currentVer.major === latestVer.major &&
-                           currentVer.minor === latestVer.minor &&
-                           currentVer.patch >= latestVer.patch;
+      satisfiesRequirement =
+        currentVer.major === latestVer.major &&
+        currentVer.minor === latestVer.minor &&
+        currentVer.patch >= latestVer.patch;
       break;
     default:
       satisfiesRequirement = false;
   }
 
-  if (satisfiesRequirement && currentVer.major === latestVer.major &&
-      currentVer.minor === latestVer.minor && currentVer.patch === latestVer.patch) {
-    return 'current';
+  if (
+    satisfiesRequirement &&
+    currentVer.major === latestVer.major &&
+    currentVer.minor === latestVer.minor &&
+    currentVer.patch === latestVer.patch
+  ) {
+    return "current";
   }
 
   // Compare with latest available version
   if (latestVer.major > currentVer.major) {
-    return 'major';
+    return "major";
   }
 
-  if (latestVer.major === currentVer.major && latestVer.minor > currentVer.minor) {
-    return 'outdated';
+  if (
+    latestVer.major === currentVer.major &&
+    latestVer.minor > currentVer.minor
+  ) {
+    return "outdated";
   }
 
-  if (latestVer.major === currentVer.major && latestVer.minor === currentVer.minor && latestVer.patch > currentVer.patch) {
-    return 'outdated';
+  if (
+    latestVer.major === currentVer.major &&
+    latestVer.minor === currentVer.minor &&
+    latestVer.patch > currentVer.patch
+  ) {
+    return "outdated";
   }
 
-  return 'current';
+  return "current";
 }
 
 // Helper function to fetch with retry logic
@@ -260,14 +300,14 @@ async function fetchWithRetry(url: string, retries = 2): Promise<Response> {
   for (let i = 0; i <= retries; i++) {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 8000);
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
 
       const response = await fetch(url, {
         headers: {
-          'User-Agent': 'dependency-tracker/1.0',
-          'Accept': 'application/json'
+          "User-Agent": "dependency-tracker/1.0",
+          Accept: "application/json",
         },
-        signal: controller.signal
+        signal: controller.signal,
       });
 
       clearTimeout(timeoutId);
@@ -275,31 +315,35 @@ async function fetchWithRetry(url: string, retries = 2): Promise<Response> {
     } catch (error) {
       console.log(`Attempt ${i + 1} failed for ${url}:`, error);
       if (i === retries) throw error;
-      await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, i)));
+      await new Promise((resolve) =>
+        setTimeout(resolve, 1000 * Math.pow(2, i))
+      );
     }
   }
-  throw new Error('Max retries reached');
+  throw new Error("Max retries reached");
 }
 
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
-    const file = formData.get('file') as File;
+    const file = formData.get("file") as File;
 
     if (!file) {
-      return NextResponse.json(
-        { error: 'No file uploaded' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
     }
 
     const fileName = file.name.toLowerCase();
 
-    if (!fileName.includes('requirements') &&
-        !fileName.includes('pipfile') &&
-        !fileName.includes('pyproject.toml')) {
+    if (
+      !fileName.includes("requirements") &&
+      !fileName.includes("pipfile") &&
+      !fileName.includes("pyproject.toml")
+    ) {
       return NextResponse.json(
-        { error: 'File must be a Python dependency file (requirements.txt, Pipfile, or pyproject.toml)' },
+        {
+          error:
+            "File must be a Python dependency file (requirements.txt, Pipfile, or pyproject.toml)",
+        },
         { status: 400 }
       );
     }
@@ -308,20 +352,20 @@ export async function POST(request: NextRequest) {
     let dependencies: PythonVersionSpec[] = [];
 
     // Parse based on file type
-    if (fileName.includes('requirements')) {
+    if (fileName.includes("requirements")) {
       dependencies = contents
-        .split('\n')
+        .split("\n")
         .map(parseRequirementLine)
         .filter((dep): dep is PythonVersionSpec => dep !== null);
-    } else if (fileName.includes('pipfile')) {
+    } else if (fileName.includes("pipfile")) {
       dependencies = parsePipfile(contents);
-    } else if (fileName.includes('pyproject.toml')) {
+    } else if (fileName.includes("pyproject.toml")) {
       dependencies = parsePyprojectToml(contents);
     }
 
     if (dependencies.length === 0) {
       return NextResponse.json(
-        { error: 'No valid dependencies found in the file' },
+        { error: "No valid dependencies found in the file" },
         { status: 400 }
       );
     }
@@ -332,7 +376,9 @@ export async function POST(request: NextRequest) {
       dependencies,
       async (dep) => {
         try {
-          const response = await fetchWithRetry(`https://pypi.org/pypi/${encodeURIComponent(dep.name)}/json`);
+          const response = await fetchWithRetry(
+            `https://pypi.org/pypi/${encodeURIComponent(dep.name)}/json`
+          );
 
           if (response.status === 404) {
             console.log(`Skipping ${dep.name}: package not found on PyPI`);
@@ -345,19 +391,68 @@ export async function POST(request: NextRequest) {
           }
 
           if (!response.ok) {
-            console.log(`Skipping ${dep.name}: PyPI returned status ${response.status}`);
+            console.log(
+              `Skipping ${dep.name}: PyPI returned status ${response.status}`
+            );
             return null;
           }
 
           const packageInfo: PyPIPackageInfo = await response.json();
+          const releases = packageInfo.releases;
           const latestVersion = packageInfo.info.version;
+
+          const latestReleaseUploads = releases[latestVersion] || [];
+          const lastUpdate =
+            latestReleaseUploads.length > 0
+              ? latestReleaseUploads.reduce((latest: number, current: any) => {
+                  const currentUploadTime = new Date(
+                    current.upload_time
+                  ).getTime();
+                  return currentUploadTime > latest
+                    ? currentUploadTime
+                    : latest;
+                }, 0)
+              : null;
+          const maintainersCount = (() => {
+            // Try maintainers array first
+            if (Array.isArray(packageInfo.info.maintainers)) {
+              return packageInfo.info.maintainers.length;
+            }
+
+            // Count comma-separated maintainer names
+            if (packageInfo.info.maintainer) {
+              return packageInfo.info.maintainer
+                .split(",")
+                .filter((m) => m.trim()).length;
+            }
+
+            // Count comma-separated author names
+            if (packageInfo.info.author) {
+              return packageInfo.info.author.split(",").filter((a) => a.trim())
+                .length;
+            }
+
+            // Fallback to email presence
+            if (
+              packageInfo.info.author_email ||
+              packageInfo.info.maintainer_email
+            ) {
+              return 1;
+            }
+
+            return 0;
+          })();
 
           if (!latestVersion) {
             console.log(`Skipping ${dep.name}: no version information found`);
             return null;
           }
 
-          const status = comparePythonVersions(dep.version, latestVersion, dep.operator);
+          const status = comparePythonVersions(
+            dep.version,
+            latestVersion,
+            dep.operator
+          );
 
           const result: PythonDependencyResult = {
             name: dep.name,
@@ -365,11 +460,14 @@ export async function POST(request: NextRequest) {
             latestVersion,
             status,
             operator: dep.operator,
-            extras: dep.extras
+            extras: dep.extras,
+            lastUpdate: lastUpdate
+              ? new Date(lastUpdate).toISOString()
+              : null,
+            maintainersCount,
           };
 
           return result;
-
         } catch (error) {
           console.error(`Error fetching data for ${dep.name}:`, error);
           return null;
@@ -378,11 +476,13 @@ export async function POST(request: NextRequest) {
       { concurrency }
     );
 
-    const filteredResults = results.filter((result): result is PythonDependencyResult => result !== null);
+    const filteredResults = results.filter(
+      (result): result is PythonDependencyResult => result !== null
+    );
 
     if (filteredResults.length === 0) {
       return NextResponse.json(
-        { error: 'No valid dependencies could be processed' },
+        { error: "No valid dependencies could be processed" },
         { status: 400 }
       );
     }
@@ -400,12 +500,11 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json(filteredResults);
-
   } catch (error) {
-    console.error('Error processing request:', error);
+    console.error("Error processing request:", error);
 
     return NextResponse.json(
-      { error: 'Failed to process Python dependency file' },
+      { error: "Failed to process Python dependency file" },
       { status: 500 }
     );
   }
