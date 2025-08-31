@@ -299,29 +299,27 @@ export default function RepoScanner() {
   const [scanHistory, setScanHistory] = useState<
     Array<{
       id: string;
-      repoName: string;
-      filePath: string;
-      scannedAt: string;
-      totalDeps: number;
-      outdatedCount: number;
-      majorCount: number;
+      repo_name: string;
+      file_path: string;
+      file_type: string;
+      total_deps: number;
+      outdated_count: number;
+      major_count: number;
+      scanned_at: string;
     }>
   >([]);
 
   // Load from localStorage on component mount
+  // Load from API on component mount
   useEffect(() => {
-    const saved = localStorage.getItem("scanHistory");
-    if (saved) {
-      setScanHistory(JSON.parse(saved));
-    }
+    fetchScanHistory();
   }, []);
 
-  const saveScanToHistory = (
+  const saveScanToHistory = async (
     repo: Repo,
     file: PackageJsonFile,
-    scanResults: DependencyStatus[] // Use the actual results parameter
+    scanResults: DependencyStatus[]
   ) => {
-    // Calculate stats directly from the passed results, not from state
     const currentStats = {
       total: scanResults.length,
       current: scanResults.filter((r) => r.status === "current").length,
@@ -329,31 +327,48 @@ export default function RepoScanner() {
       major: scanResults.filter((r) => r.status === "major").length,
     };
 
-    const scanRecord = {
-      id: `${repo.id}-${file.path}-${Date.now()}`,
-      repoName: repo.name,
-      filePath: file.path,
-      scannedAt: new Date().toISOString(),
-      totalDeps: currentStats.total, // Now using the actual data
-      outdatedCount: currentStats.outdated,
-      majorCount: currentStats.major,
-    };
+    try {
+      await fetch("/api/scan-history", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          repo_name: repo.name,
+          file_path: file.path,
+          file_type: fileType,
+          total_deps: currentStats.total,
+          outdated_count: currentStats.outdated,
+          major_count: currentStats.major,
+        }),
+      });
 
-    const newHistory = [scanRecord, ...scanHistory.slice(0, 4)];
-    setScanHistory(newHistory);
-    localStorage.setItem("scanHistory", JSON.stringify(newHistory));
+      // Refresh scan history after saving
+      fetchScanHistory();
+    } catch (error) {
+      console.error("Failed to save scan history:", error);
+    }
   };
 
   // Function to delete a scan from history
-  const deleteScanFromHistory = (scanId: string) => {
-    const updatedHistory = scanHistory.filter((scan) => scan.id !== scanId);
-    setScanHistory(updatedHistory);
-    localStorage.setItem("scanHistory", JSON.stringify(updatedHistory));
+  const deleteScanFromHistory = async (scanId: string) => {
+    try {
+      await fetch(`/api/scan-history?id=${scanId}`, { method: "DELETE" });
+      fetchScanHistory(); // Refresh the list
+    } catch (error) {
+      console.error("Failed to delete scan:", error);
+    }
   };
 
   const handleRescan = async (scan: any) => {
-    const repo = repos.find((r) => r.name === scan.repoName);
-    if (!repo) return;
+    // First ensure repos are loaded
+    if (repos.length === 0) {
+      await fetchRepos();
+    }
+
+    const repo = repos.find((r) => r.name === scan.repo_name); // ← Changed
+    if (!repo) {
+      setError(`Repository "${scan.repo_name}" not found`);
+      return;
+    }
 
     setSelectedRepo(repo);
     setError("");
@@ -365,23 +380,58 @@ export default function RepoScanner() {
         `/api/github/file?owner=${owner}&repo=${repoName}`
       );
 
-      if (response.ok) {
-        const data = await response.json();
-        setPackageJsonFiles(data.files);
+      if (!response.ok) {
+        throw new Error("Failed to fetch repository files");
+      }
 
-        const targetFile = data.files.find(
-          (f: PackageJsonFile) => f.path === scan.filePath
-        );
-        if (targetFile) {
-          setSelectedFile(targetFile);
-          // Auto-scan after setting file
-          setTimeout(() => scanPackageJson(), 300);
-        }
+      const data = await response.json();
+      setPackageJsonFiles(data.files);
+
+      const targetFile = data.files.find(
+        (f: PackageJsonFile) => f.path === scan.file_path // ← Changed
+      );
+
+      if (targetFile) {
+        setSelectedFile(targetFile);
+        // Set the file type to match the scan
+        setFileType(scan.file_type as "javascript" | "python");
+
+        // Auto-scan after setting file with a longer delay
+        setTimeout(() => {
+          if (selectedRepo && selectedFile) {
+            // Double-check state is set
+            scanPackageJson();
+          }
+        }, 500);
+      } else {
+        setError(`File "${scan.file_path}" not found in repository`);
       }
     } catch (err) {
       setError("Failed to rescan repository");
+      console.error("Rescan error:", err);
     } finally {
       setSearching(false);
+    }
+  };
+
+  const fetchScanHistory = async () => {
+    try {
+      const response = await fetch("/api/scan-history");
+      const data = await response.json();
+      setScanHistory(data.scans || []);
+    } catch (error) {
+      console.error("Failed to fetch scan history:", error);
+    }
+  };
+
+  const fetchDailyCounts = async () => {
+    try {
+      const response = await fetch("/api/scan-counts");
+      const data = await response.json();
+      return data.dailyCounts || [];
+    } catch (error) {
+      console.error("Failed to fetch daily counts:", error);
+      return [];
     }
   };
 
@@ -395,361 +445,362 @@ export default function RepoScanner() {
           Scan your GitHub repositories for outdated dependencies
         </p>
       </div>
-    <div className="max-w-4xl mx-auto p-6 space-y-6 bg-gray-900 rounded-lg shadow-lg">
-      {/* GitHub Repository Selection */}
-      <div className="bg-white rounded-lg shadow p-6 text-black">
-        <div className="text-center mb-6 bg">
-          <div className="flex items-center justify-center space-x-2 mb-4">
-            <Package className="w-8 h-8 text-green-400" />
-            <h2 className="text-2xl font-bold">GitHub Repository Scanner</h2>
-          </div>
-          <p className="text-gray-800">
-            Connect to your GitHub repositories and scan package.json files
-          </p>
-        </div>
-
-        {!repos.length ? (
-          <div className="text-center">
-            <button
-              onClick={fetchRepos}
-              disabled={loading}
-              className="px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? (
-                <div className="flex items-center space-x-2 justify-center">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  <span>Loading Repositories...</span>
-                </div>
-              ) : (
-                "Load My Repositories"
-              )}
-            </button>
-          </div>
-        ) : (
-          <div className="space-y-4 text-white">
-            <div>
-              <label className="block text-sm font-medium text-gray-800 mb-2">
-                Select Repository
-              </label>
-              <Select
-                value={selectedRepo?.id ? String(selectedRepo.id) : ""}
-                onValueChange={(value) => {
-                  const repo = repos.find((r) => r.id === parseInt(value));
-                  setSelectedRepo(repo || null);
-                  setFileType("javascript");
-                  setPackageJsonFiles([]);
-                  setSelectedFile(null);
-                  setResults([]);
-                }}
-              >
-                <SelectTrigger className="w-full bg-gray-700 text-white border border-gray-600 rounded-lg">
-                  <SelectValue placeholder="Choose a repository..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {repos.map((repo) => (
-                    <SelectItem key={repo.id} value={String(repo.id)}>
-                      {repo.name} {repo.private ? "(Private)" : "(Public)"}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+      <div className="max-w-4xl mx-auto p-6 space-y-6 bg-gray-900 rounded-lg shadow-lg">
+        {/* GitHub Repository Selection */}
+        <div className="bg-white rounded-lg shadow p-6 text-black">
+          <div className="text-center mb-6 bg">
+            <div className="flex items-center justify-center space-x-2 mb-4">
+              <Package className="w-8 h-8 text-green-400" />
+              <h2 className="text-2xl font-bold">GitHub Repository Scanner</h2>
             </div>
+            <p className="text-gray-800">
+              Connect to your GitHub repositories and scan package.json files
+            </p>
+          </div>
 
-            {selectedRepo && (
+          {!repos.length ? (
+            <div className="text-center">
+              <button
+                onClick={fetchRepos}
+                disabled={loading}
+                className="px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? (
+                  <div className="flex items-center space-x-2 justify-center">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    <span>Loading Repositories...</span>
+                  </div>
+                ) : (
+                  "Load My Repositories"
+                )}
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-4 text-white">
               <div>
                 <label className="block text-sm font-medium text-gray-800 mb-2">
-                  File Type to Search
+                  Select Repository
                 </label>
-                <div className="flex space-x-4 mb-4">
-                  <button
-                    onClick={() => setFileType("javascript")}
-                    className={`px-4 py-2 rounded-lg ${
-                      fileType === "javascript"
-                        ? "bg-blue-600 text-white"
-                        : "bg-gray-200 text-gray-700"
-                    }`}
-                  >
-                    JavaScript (package.json)
-                  </button>
-                  <button
-                    onClick={() => setFileType("python")}
-                    className={`px-4 py-2 rounded-lg ${
-                      fileType === "python"
-                        ? "bg-blue-600 text-white"
-                        : "bg-gray-200 text-gray-700"
-                    }`}
-                  >
-                    Python (requirements.txt, etc.)
-                  </button>
-                </div>
-
-                <div className="space-y-3">
-                  <button
-                    onClick={searchDependencyFiles}
-                    disabled={searching}
-                    className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
-                  >
-                    {searching ? "Searching..." : `Find ${fileType} files`}
-                  </button>
-
-                  {packageJsonFiles.length > 0 && (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-800 mb-2">
-                        Select{" "}
-                        {fileType === "javascript"
-                          ? "package.json"
-                          : "dependency"}{" "}
-                        file
-                      </label>
-                      <Select
-                        value={selectedFile?.path || ""}
-                        onValueChange={(value) => {
-                          const file = packageJsonFiles.find(
-                            (f) => f.path === value
-                          );
-                          setSelectedFile(file || null);
-                        }}
-                      >
-                        <SelectTrigger className="w-full bg-gray-700 text-white border border-gray-600 rounded-lg">
-                          <SelectValue
-                            placeholder={`Choose a ${fileType} file...`}
-                          />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {packageJsonFiles.map((file) => (
-                            <SelectItem key={file.path} value={file.path}>
-                              {file.path}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
-
-                  {selectedFile && (
-                    <button
-                      onClick={scanPackageJson}
-                      disabled={scanning}
-                      className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
-                    >
-                      {scanning ? (
-                        <div className="flex items-center space-x-2 justify-center">
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                          <span>Scanning Dependencies...</span>
-                        </div>
-                      ) : (
-                        `Scan ${selectedFile.path}`
-                      )}
-                    </button>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {error && (
-          <div className="mt-4 p-4 bg-red-700 border border-red-600 rounded-lg text-red-200">
-            <p>{error}</p>
-          </div>
-        )}
-        {/* Recent Scans - Only show if there are any */}
-        {scanHistory.length > 0 && (
-          <div className="bg-white rounded-lg shadow p-6 mb-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              Recent Scans
-            </h3>
-            <div className="space-y-2">
-              {scanHistory.map((scan) => (
-                <div
-                  key={scan.id}
-                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                <Select
+                  value={selectedRepo?.id ? String(selectedRepo.id) : ""}
+                  onValueChange={(value) => {
+                    const repo = repos.find((r) => r.id === parseInt(value));
+                    setSelectedRepo(repo || null);
+                    setFileType("javascript");
+                    setPackageJsonFiles([]);
+                    setSelectedFile(null);
+                    setResults([]);
+                  }}
                 >
-                  <div>
-                    <span className="font-medium text-gray-900">
-                      {scan.repoName}
-                    </span>
-                    <span className="text-sm text-gray-500 ml-2">
-                      {scan.filePath}
-                    </span>
-                    <div className="text-xs text-gray-400">
-                      {new Date(scan.scannedAt).toLocaleString()}
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <span className="text-sm text-gray-600">
-                      {scan.totalDeps} deps
-                    </span>
-                    {scan.outdatedCount > 0 && (
-                      <span className="text-sm text-yellow-600">
-                        {scan.outdatedCount} outdated
-                      </span>
-                    )}
-                    {scan.majorCount > 0 && (
-                      <span className="text-sm text-red-600">
-                        {scan.majorCount} major
-                      </span>
-                    )}
+                  <SelectTrigger className="w-full bg-gray-700 text-white border border-gray-600 rounded-lg">
+                    <SelectValue placeholder="Choose a repository..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {repos.map((repo) => (
+                      <SelectItem key={repo.id} value={String(repo.id)}>
+                        {repo.name} {repo.private ? "(Private)" : "(Public)"}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {selectedRepo && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-800 mb-2">
+                    File Type to Search
+                  </label>
+                  <div className="flex space-x-4 mb-4">
                     <button
-                      onClick={() => handleRescan(scan)}
-                      className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
-                    >
-                      Rescan
-                    </button>
-                    <button
-                      onClick={() => deleteScanFromHistory(scan.id)}
-                      className="text-xs px-2 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Results Section */}
-      {results.length > 0 && (
-        <>
-          <div className="text-right">
-            <button
-              onClick={handleVulnerabilityScan}
-              disabled={vulnerabilityLoading}
-              className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:bg-red-300"
-            >
-              {vulnerabilityLoading
-                ? "Scanning Vulnerabilities..."
-                : "Scan Vulnerabilities"}
-            </button>
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            <div className="bg-white rounded-lg shadow p-4 text-center">
-              <div className="text-2xl font-bold text-gray-900">
-                {stats.total}
-              </div>
-              <div className="text-sm text-gray-600">Total</div>
-            </div>
-            <div className="bg-white rounded-lg shadow p-4 text-center">
-              <div className="text-2xl font-bold text-green-600">
-                {stats.current}
-              </div>
-              <div className="text-sm text-gray-600">Current</div>
-            </div>
-            <div className="bg-white rounded-lg shadow p-4 text-center">
-              <div className="text-2xl font-bold text-yellow-600">
-                {stats.outdated}
-              </div>
-              <div className="text-sm text-gray-600">Outdated</div>
-            </div>
-            <div className="bg-white rounded-lg shadow p-4 text-center">
-              <div className="text-2xl font-bold text-red-600">
-                {stats.major}
-              </div>
-              <div className="text-sm text-gray-600">Major Updates</div>
-            </div>
-          </div>
-
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">
-            Dependency Analysis Results
-          </h2>
-
-          <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-            <ul className="divide-y divide-gray-200">
-              {results.map((dep, index) => (
-                <li key={index} className="px-6 py-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-start space-x-3">
-                      {getStatusIcon(dep.status)}
-                      <div>
-                        <h3 className="text-sm font-medium text-gray-900 flex items-center space-x-2">
-                          <span>{dep.name}</span>
-                          {dep.extras && dep.extras.length > 0 && (
-                            <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
-                              [{dep.extras.join(", ")}]
-                            </span>
-                          )}
-                        </h3>
-
-                        <p className="text-sm text-gray-800">
-                          Your version: {dep.currentVersion} → Latest:{" "}
-                          {dep.latestVersion}
-                        </p>
-
-                        {typeof dep.maintainersCount === "number" && (
-                          <span className="text-xs text-gray-500 block">
-                            Collaborators: {dep.maintainersCount}
-                          </span>
-                        )}
-                        {dep.lastUpdate && (
-                          <span className="text-xs text-gray-500 block">
-                            Last Update:{" "}
-                            {new Date(dep.lastUpdate).toLocaleDateString()}
-                          </span>
-                        )}
-
-                        {dep.vulnerabilities &&
-                          dep.vulnerabilities.length > 0 && (
-                            <div className="mt-1">
-                              <span className="text-xs font-semibold text-red-600">
-                                Vulnerabilities:
-                              </span>
-                              <ul className="text-xs text-red-500 list-disc list-inside">
-                                {dep.vulnerabilities.map((vuln, i) => (
-                                  <li key={i} title={vuln.title}>
-                                    [{vuln.severity.toUpperCase()}] {vuln.title}
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                          )}
-                      </div>
-                    </div>
-                    <span
-                      className={`inline-flex items-start px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        dep.status === "current"
-                          ? "bg-green-100 text-green-800"
-                          : dep.status === "outdated"
-                          ? "bg-yellow-100 text-yellow-800"
-                          : "bg-red-100 text-red-800"
+                      onClick={() => setFileType("javascript")}
+                      className={`px-4 py-2 rounded-lg ${
+                        fileType === "javascript"
+                          ? "bg-blue-600 text-white"
+                          : "bg-gray-200 text-gray-700"
                       }`}
                     >
-                      {dep.status === "major" ? "Major Update" : dep.status}
-                    </span>
+                      JavaScript (package.json)
+                    </button>
+                    <button
+                      onClick={() => setFileType("python")}
+                      className={`px-4 py-2 rounded-lg ${
+                        fileType === "python"
+                          ? "bg-blue-600 text-white"
+                          : "bg-gray-200 text-gray-700"
+                      }`}
+                    >
+                      Python (requirements.txt, etc.)
+                    </button>
                   </div>
-                </li>
-              ))}
-            </ul>
-          </div>
 
-          {/* Action suggestions */}
-          <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h3 className="text-sm font-medium text-blue-900 mb-2">
-              Next Steps
-            </h3>
-            <ul className="text-sm text-blue-700 space-y-1">
-              {stats.major > 0 && (
-                <li>
-                  • Review {stats.major} major update(s) carefully - they may
-                  contain breaking changes
-                </li>
+                  <div className="space-y-3">
+                    <button
+                      onClick={searchDependencyFiles}
+                      disabled={searching}
+                      className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
+                    >
+                      {searching ? "Searching..." : `Find ${fileType} files`}
+                    </button>
+
+                    {packageJsonFiles.length > 0 && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-800 mb-2">
+                          Select{" "}
+                          {fileType === "javascript"
+                            ? "package.json"
+                            : "dependency"}{" "}
+                          file
+                        </label>
+                        <Select
+                          value={selectedFile?.path || ""}
+                          onValueChange={(value) => {
+                            const file = packageJsonFiles.find(
+                              (f) => f.path === value
+                            );
+                            setSelectedFile(file || null);
+                          }}
+                        >
+                          <SelectTrigger className="w-full bg-gray-700 text-white border border-gray-600 rounded-lg">
+                            <SelectValue
+                              placeholder={`Choose a ${fileType} file...`}
+                            />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {packageJsonFiles.map((file) => (
+                              <SelectItem key={file.path} value={file.path}>
+                                {file.path}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+
+                    {selectedFile && (
+                      <button
+                        onClick={scanPackageJson}
+                        disabled={scanning}
+                        className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+                      >
+                        {scanning ? (
+                          <div className="flex items-center space-x-2 justify-center">
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                            <span>Scanning Dependencies...</span>
+                          </div>
+                        ) : (
+                          `Scan ${selectedFile.path}`
+                        )}
+                      </button>
+                    )}
+                  </div>
+                </div>
               )}
-              {stats.outdated > 0 && (
-                <li>
-                  • Consider updating {stats.outdated} minor/patch version(s)
-                  for bug fixes and improvements
-                </li>
-              )}
-              {stats.current === stats.total && (
-                <li>• All dependencies are up to date! 🎉</li>
-              )}
-            </ul>
-          </div>
-        </>
-      )}
-    </div>
+            </div>
+          )}
+
+          {error && (
+            <div className="mt-4 p-4 bg-red-700 border border-red-600 rounded-lg text-red-200">
+              <p>{error}</p>
+            </div>
+          )}
+          {/* Recent Scans - Only show if there are any */}
+          {scanHistory.length > 0 && (
+            <div className="bg-white rounded-lg shadow p-6 mb-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                Recent Scans
+              </h3>
+              <div className="space-y-2">
+                {scanHistory.map((scan) => (
+                  <div
+                    key={scan.id}
+                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                  >
+                    <div>
+                      <span className="font-medium text-gray-900">
+                        {scan.repo_name}
+                      </span>
+                      <span className="text-sm text-gray-500 ml-2">
+                        {scan.file_path}
+                      </span>
+                      <div className="text-xs text-gray-400">
+                        {new Date(scan.scanned_at).toLocaleString()}
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      <span className="text-sm text-gray-600">
+                        {scan.total_deps} deps
+                      </span>
+                      {scan.outdated_count > 0 && (
+                        <span className="text-sm text-yellow-600">
+                          {scan.outdated_count} outdated
+                        </span>
+                      )}
+                      {scan.major_count > 0 && (
+                        <span className="text-sm text-red-600">
+                          {scan.major_count} major
+                        </span>
+                      )}
+                      <button
+                        onClick={() => handleRescan(scan)}
+                        className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+                      >
+                        Rescan
+                      </button>
+                      <button
+                        onClick={() => deleteScanFromHistory(scan.id)}
+                        className="text-xs px-2 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Results Section */}
+        {results.length > 0 && (
+          <>
+            <div className="text-right">
+              <button
+                onClick={handleVulnerabilityScan}
+                disabled={vulnerabilityLoading}
+                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:bg-red-300"
+              >
+                {vulnerabilityLoading
+                  ? "Scanning Vulnerabilities..."
+                  : "Scan Vulnerabilities"}
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+              <div className="bg-white rounded-lg shadow p-4 text-center">
+                <div className="text-2xl font-bold text-gray-900">
+                  {stats.total}
+                </div>
+                <div className="text-sm text-gray-600">Total</div>
+              </div>
+              <div className="bg-white rounded-lg shadow p-4 text-center">
+                <div className="text-2xl font-bold text-green-600">
+                  {stats.current}
+                </div>
+                <div className="text-sm text-gray-600">Current</div>
+              </div>
+              <div className="bg-white rounded-lg shadow p-4 text-center">
+                <div className="text-2xl font-bold text-yellow-600">
+                  {stats.outdated}
+                </div>
+                <div className="text-sm text-gray-600">Outdated</div>
+              </div>
+              <div className="bg-white rounded-lg shadow p-4 text-center">
+                <div className="text-2xl font-bold text-red-600">
+                  {stats.major}
+                </div>
+                <div className="text-sm text-gray-600">Major Updates</div>
+              </div>
+            </div>
+
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">
+              Dependency Analysis Results
+            </h2>
+
+            <div className="bg-white shadow overflow-hidden sm:rounded-lg">
+              <ul className="divide-y divide-gray-200">
+                {results.map((dep, index) => (
+                  <li key={index} className="px-6 py-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-start space-x-3">
+                        {getStatusIcon(dep.status)}
+                        <div>
+                          <h3 className="text-sm font-medium text-gray-900 flex items-center space-x-2">
+                            <span>{dep.name}</span>
+                            {dep.extras && dep.extras.length > 0 && (
+                              <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
+                                [{dep.extras.join(", ")}]
+                              </span>
+                            )}
+                          </h3>
+
+                          <p className="text-sm text-gray-800">
+                            Your version: {dep.currentVersion} → Latest:{" "}
+                            {dep.latestVersion}
+                          </p>
+
+                          {typeof dep.maintainersCount === "number" && (
+                            <span className="text-xs text-gray-500 block">
+                              Collaborators: {dep.maintainersCount}
+                            </span>
+                          )}
+                          {dep.lastUpdate && (
+                            <span className="text-xs text-gray-500 block">
+                              Last Update:{" "}
+                              {new Date(dep.lastUpdate).toLocaleDateString()}
+                            </span>
+                          )}
+
+                          {dep.vulnerabilities &&
+                            dep.vulnerabilities.length > 0 && (
+                              <div className="mt-1">
+                                <span className="text-xs font-semibold text-red-600">
+                                  Vulnerabilities:
+                                </span>
+                                <ul className="text-xs text-red-500 list-disc list-inside">
+                                  {dep.vulnerabilities.map((vuln, i) => (
+                                    <li key={i} title={vuln.title}>
+                                      [{vuln.severity.toUpperCase()}]{" "}
+                                      {vuln.title}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                        </div>
+                      </div>
+                      <span
+                        className={`inline-flex items-start px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          dep.status === "current"
+                            ? "bg-green-100 text-green-800"
+                            : dep.status === "outdated"
+                            ? "bg-yellow-100 text-yellow-800"
+                            : "bg-red-100 text-red-800"
+                        }`}
+                      >
+                        {dep.status === "major" ? "Major Update" : dep.status}
+                      </span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Action suggestions */}
+            <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <h3 className="text-sm font-medium text-blue-900 mb-2">
+                Next Steps
+              </h3>
+              <ul className="text-sm text-blue-700 space-y-1">
+                {stats.major > 0 && (
+                  <li>
+                    • Review {stats.major} major update(s) carefully - they may
+                    contain breaking changes
+                  </li>
+                )}
+                {stats.outdated > 0 && (
+                  <li>
+                    • Consider updating {stats.outdated} minor/patch version(s)
+                    for bug fixes and improvements
+                  </li>
+                )}
+                {stats.current === stats.total && (
+                  <li>• All dependencies are up to date! 🎉</li>
+                )}
+              </ul>
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }
