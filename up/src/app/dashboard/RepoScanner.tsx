@@ -582,7 +582,7 @@ export default function RepoScanner() {
               {results.map((dep, index) => (
                 <li key={index} className="px-6 py-4">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
+                    <div className="flex items-start space-x-3">
                       {getStatusIcon(dep.status)}
                       <div>
                         <h3 className="text-sm font-medium text-gray-900 flex items-center space-x-2">
@@ -594,7 +594,7 @@ export default function RepoScanner() {
                           )}
                         </h3>
 
-                        <p className="text-sm text-gray-500">
+                        <p className="text-sm text-gray-800">
                           Your version: {dep.currentVersion} → Latest:{" "}
                           {dep.latestVersion}
                         </p>
@@ -629,7 +629,7 @@ export default function RepoScanner() {
                       </div>
                     </div>
                     <span
-                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                      className={`inline-flex items-start px-2.5 py-0.5 rounded-full text-xs font-medium ${
                         dep.status === "current"
                           ? "bg-green-100 text-green-800"
                           : dep.status === "outdated"

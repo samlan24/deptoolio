@@ -420,7 +420,7 @@ export default function Home() {
                   {results.map((dep, index) => (
                     <li key={index} className="px-6 py-4">
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3">
+                        <div className="flex items-start space-x-3">
                           {getStatusIcon(dep.status)}
                           <div>
                             <h3 className="text-sm font-medium text-gray-900 flex items-center space-x-2">
@@ -432,7 +432,7 @@ export default function Home() {
                               )}
                             </h3>
 
-                            <p className="text-sm text-gray-500">
+                            <p className="text-sm text-gray-700">
                               Your version: {dep.currentVersion} → Latest:{" "}
                               {dep.latestVersion}
                             </p>
