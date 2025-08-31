@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   CheckCircle,
   AlertCircle,
@@ -10,6 +10,8 @@ import {
   Code,
 } from "lucide-react";
 import Link from "next/link";
+import { createClient } from "../lib/supabase";
+import type { User } from "@supabase/supabase-js";
 
 interface DependencyStatus {
   name: string;
@@ -30,6 +32,9 @@ export default function Home() {
   const [detectedFileType, setDetectedFileType] = useState<FileType>("unknown");
   const [fileName, setFileName] = useState<string>("");
   const [vulnerabilityLoading, setVulnerabilityLoading] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const supabase = createClient();
 
   // File type detection logic (same as before)
   const detectFileType = (filename: string): FileType => {
@@ -231,6 +236,26 @@ export default function Home() {
   const fileTypeInfo = getFileTypeInfo(detectedFileType);
   const stats = getSummaryStats();
 
+  useEffect(() => {
+    const getUser = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      setUser(user);
+      setAuthLoading(false);
+    };
+
+    getUser();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
   return (
     <div className="min-h-screen pt-20">
       <div className="max-w-4xl mx-auto">
@@ -263,44 +288,64 @@ export default function Home() {
                 accept=".json,.txt,.toml"
                 onChange={handleFileUpload}
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                disabled={isLoading || vulnerabilityLoading}
-                aria-disabled={isLoading || vulnerabilityLoading}
+                disabled={isLoading || vulnerabilityLoading || authLoading}
+                aria-disabled={isLoading || vulnerabilityLoading || authLoading}
               />
             </label>
-            {/* Divider */}
-            <div className="flex items-center w-full max-w-md">
-              <div className="flex-grow border-t border-gray-300"></div>
-              <span className="mx-3 text-gray-500 text-sm">or</span>
-              <div className="flex-grow border-t border-gray-300"></div>
-            </div>
-            {/* Connect buttons */}
-            <div className="flex gap-3">
-              <Link href="/login">
-                <button className="flex items-center gap-2 px-4 py-2 bg-black text-white rounded hover:bg-gray-800">
-                  <svg
-                    className="w-5 h-5"
-                    fill="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path d="M12 .5C5.65.5.5 5.65.5 12c0 5.1 3.3 9.4 7.9 10.9.6.1.8-.3.8-.6v-2c-3.2.7-3.9-1.5-3.9-1.5-.5-1.1-1.1-1.4-1.1-1.4-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.5 2.3 1.1 2.8.8.1-.7.4-1.1.7-1.4-2.5-.3-5.2-1.3-5.2-5.7 0-1.2.4-2.1 1-2.9-.1-.3-.4-1.3.1-2.6 0 0 .8-.3 2.7 1a9.3 9.3 0 0 1 4.9 0c1.9-1.3 2.7-1 2.7-1 .5 1.3.2 2.3.1 2.6.6.8 1 1.7 1 2.9 0 4.4-2.7 5.4-5.3 5.7.4.3.7.9.7 1.8v2.6c0 .3.2.7.8.6a11.5 11.5 0 0 0 7.9-10.9C23.5 5.65 18.35.5 12 .5z" />
-                  </svg>
-                  Connect GitHub
-                </button>
-              </Link>
-              <button
-                onClick={() => (window.location.href = "/api/auth/gitlab")}
-                className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700"
-              >
-                <svg
-                  className="w-5 h-5"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path d="M22.47 9.6l-1.3-4.1a1.05 1.05 0 0 0-2 0L17.5 9.6H6.5L4.8 5.5a1.05 1.05 0 0 0-2 0L1.47 9.6a1.07 1.07 0 0 0 .4 1.2L12 22.6l10.1-11.8c.3-.3.4-.8.3-1.2z" />
-                </svg>
-                Connect GitLab
-              </button>
-            </div>
+            {!authLoading && (
+              <>
+                {/* Divider */}
+                <div className="flex items-center w-full max-w-md">
+                  <div className="flex-grow border-t border-gray-300"></div>
+                  <span className="mx-3 text-gray-500 text-sm">or</span>
+                  <div className="flex-grow border-t border-gray-300"></div>
+                </div>
+
+                {/* Conditional buttons based on auth state */}
+                {user ? (
+                  /* Logged IN users - Show Dashboard access */
+                  <div className="flex gap-3">
+                    <Link href="/dashboard">
+                      <button className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium">
+                        <Package className="w-5 h-5" />
+                        Scan GitHub Repos
+                      </button>
+                    </Link>
+                  </div>
+                ) : (
+                  /* Logged OUT users - Show connect options */
+                  <div className="flex gap-3">
+                    <Link href="/login">
+                      <button className="flex items-center gap-2 px-4 py-2 bg-black text-white rounded hover:bg-gray-800">
+                        <svg
+                          className="w-5 h-5"
+                          fill="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path d="M12 .5C5.65.5.5 5.65.5 12c0 5.1 3.3 9.4 7.9 10.9.6.1.8-.3.8-.6v-2c-3.2.7-3.9-1.5-3.9-1.5-.5-1.1-1.1-1.4-1.1-1.4-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.5 2.3 1.1 2.8.8.1-.7.4-1.1.7-1.4-2.5-.3-5.2-1.3-5.2-5.7 0-1.2.4-2.1 1-2.9-.1-.3-.4-1.3.1-2.6 0 0 .8-.3 2.7 1a9.3 9.3 0 0 1 4.9 0c1.9-1.3 2.7-1 2.7-1 .5 1.3.2 2.3.1 2.6.6.8 1 1.7 1 2.9 0 4.4-2.7 5.4-5.3 5.7.4.3.7.9.7 1.8v2.6c0 .3.2.7.8.6a11.5 11.5 0 0 0 7.9-10.9C23.5 5.65 18.35.5 12 .5z" />
+                        </svg>
+                        Connect GitHub
+                      </button>
+                    </Link>
+                    <button
+                      onClick={() =>
+                        (window.location.href = "/api/auth/gitlab")
+                      }
+                      className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700"
+                    >
+                      <svg
+                        className="w-5 h-5"
+                        fill="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path d="M22.47 9.6l-1.3-4.1a1.05 1.05 0 0 0-2 0L17.5 9.6H6.5L4.8 5.5a1.05 1.05 0 0 0-2 0L1.47 9.6a1.07 1.07 0 0 0 .4 1.2L12 22.6l10.1-11.8c.3-.3.4-.8.3-1.2z" />
+                      </svg>
+                      Connect GitLab
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
           </div>
 
           {fileName && detectedFileType !== "unknown" && (

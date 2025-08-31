@@ -1,7 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import RepoScanner from './RepoScanner'
-import SignOutButton from './SignOutButton'
+
 
 async function createClient() {
   const cookieStore = await cookies()
@@ -35,7 +35,7 @@ export default async function Dashboard() {
         <h1 className="text-3xl font-bold mb-2 text-white">Dashboard</h1>
         <p className="text-gray-400">Welcome back, {user?.email}</p>
       </div>
-      <SignOutButton />
+
     </div>
 
     <RepoScanner />

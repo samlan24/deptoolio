@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   CheckCircle,
   AlertCircle,
@@ -154,6 +154,7 @@ export default function RepoScanner() {
 
       const scanResults = await scanResponse.json();
       setResults(scanResults);
+      saveScanToHistory(selectedRepo, selectedFile, scanResults);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Failed to scan package.json"
@@ -256,6 +257,96 @@ export default function RepoScanner() {
   };
 
   const stats = getSummaryStats();
+
+  // Scan history - optional, can be expanded later
+  const [scanHistory, setScanHistory] = useState<
+    Array<{
+      id: string;
+      repoName: string;
+      filePath: string;
+      scannedAt: string;
+      totalDeps: number;
+      outdatedCount: number;
+      majorCount: number;
+    }>
+  >([]);
+
+  // Load from localStorage on component mount
+  useEffect(() => {
+    const saved = localStorage.getItem("scanHistory");
+    if (saved) {
+      setScanHistory(JSON.parse(saved));
+    }
+  }, []);
+
+  const saveScanToHistory = (
+    repo: Repo,
+    file: PackageJsonFile,
+    scanResults: DependencyStatus[] // Use the actual results parameter
+  ) => {
+    // Calculate stats directly from the passed results, not from state
+    const currentStats = {
+      total: scanResults.length,
+      current: scanResults.filter((r) => r.status === "current").length,
+      outdated: scanResults.filter((r) => r.status === "outdated").length,
+      major: scanResults.filter((r) => r.status === "major").length,
+    };
+
+    const scanRecord = {
+      id: `${repo.id}-${file.path}-${Date.now()}`,
+      repoName: repo.name,
+      filePath: file.path,
+      scannedAt: new Date().toISOString(),
+      totalDeps: currentStats.total, // Now using the actual data
+      outdatedCount: currentStats.outdated,
+      majorCount: currentStats.major,
+    };
+
+    const newHistory = [scanRecord, ...scanHistory.slice(0, 4)];
+    setScanHistory(newHistory);
+    localStorage.setItem("scanHistory", JSON.stringify(newHistory));
+  };
+
+  // Function to delete a scan from history
+  const deleteScanFromHistory = (scanId: string) => {
+    const updatedHistory = scanHistory.filter((scan) => scan.id !== scanId);
+    setScanHistory(updatedHistory);
+    localStorage.setItem("scanHistory", JSON.stringify(updatedHistory));
+  };
+
+  const handleRescan = async (scan: any) => {
+    const repo = repos.find((r) => r.name === scan.repoName);
+    if (!repo) return;
+
+    setSelectedRepo(repo);
+    setError("");
+    setSearching(true);
+
+    try {
+      const [owner, repoName] = repo.full_name.split("/");
+      const response = await fetch(
+        `/api/github/file?owner=${owner}&repo=${repoName}`
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        setPackageJsonFiles(data.files);
+
+        const targetFile = data.files.find(
+          (f: PackageJsonFile) => f.path === scan.filePath
+        );
+        if (targetFile) {
+          setSelectedFile(targetFile);
+          // Auto-scan after setting file
+          setTimeout(() => scanPackageJson(), 300);
+        }
+      }
+    } catch (err) {
+      setError("Failed to rescan repository");
+    } finally {
+      setSearching(false);
+    }
+  };
 
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-6 bg-gray-900 rounded-lg shadow-lg">
@@ -379,6 +470,61 @@ export default function RepoScanner() {
         {error && (
           <div className="mt-4 p-4 bg-red-700 border border-red-600 rounded-lg text-red-200">
             <p>{error}</p>
+          </div>
+        )}
+        {/* Recent Scans - Only show if there are any */}
+        {scanHistory.length > 0 && (
+          <div className="bg-white rounded-lg shadow p-6 mb-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              Recent Scans
+            </h3>
+            <div className="space-y-2">
+              {scanHistory.map((scan) => (
+                <div
+                  key={scan.id}
+                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                >
+                  <div>
+                    <span className="font-medium text-gray-900">
+                      {scan.repoName}
+                    </span>
+                    <span className="text-sm text-gray-500 ml-2">
+                      {scan.filePath}
+                    </span>
+                    <div className="text-xs text-gray-400">
+                      {new Date(scan.scannedAt).toLocaleString()}
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <span className="text-sm text-gray-600">
+                      {scan.totalDeps} deps
+                    </span>
+                    {scan.outdatedCount > 0 && (
+                      <span className="text-sm text-yellow-600">
+                        {scan.outdatedCount} outdated
+                      </span>
+                    )}
+                    {scan.majorCount > 0 && (
+                      <span className="text-sm text-red-600">
+                        {scan.majorCount} major
+                      </span>
+                    )}
+                    <button
+                      onClick={() => handleRescan(scan)}
+                      className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+                    >
+                      Rescan
+                    </button>
+                    <button
+                      onClick={() => deleteScanFromHistory(scan.id)}
+                      className="text-xs px-2 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>
