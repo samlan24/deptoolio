@@ -434,7 +434,7 @@ export default function Home() {
                               </span>
                               {typeof dep.maintainersCount === "number" && (
                                 <span className="text-xs text-gray-500">
-                                  Maintainers: {dep.maintainersCount}
+                                  Collaborators: {dep.maintainersCount}
                                 </span>
                               )}
                               {dep.lastUpdate && (
