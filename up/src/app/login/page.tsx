@@ -17,7 +17,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col md:flex-row">
+    <div className="flex min-h-screen pt-16 flex-col md:flex-row">
       {/* Left side */}
       <div className="flex flex-col items-center justify-center w-full md:w-1/2 bg-gray-900 text-white p-8">
         <h1 className="text-3xl md:text-4xl font-bold mb-4 text-center">
