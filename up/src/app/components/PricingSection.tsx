@@ -1,6 +1,6 @@
 import { Card } from "../components/ui/card";
 import { Button } from "../components/ui/button";
-import { Check, Star, Zap, Users } from "lucide-react";
+import { Check, Star, Zap } from "lucide-react";
 
 interface PricingSectionProps {
   id?: string;
@@ -16,49 +16,48 @@ const PricingSection = ({ id }: PricingSectionProps ) => {
       description: "Perfect for trying it out",
       icon: Star,
       features: [
-        "1 file scan per day",
-        "All supported languages",
-        "Basic dependency checking",
-        "Email support"
+        "10 manual file scans per month",
+        "Basic dependency scanning",
+        "View results (no save/history)",
+        "No GitHub integration",
+        "Results expire after session"
       ],
       cta: "Start Free",
       popular: false,
     },
     {
-      name: "Pro",
-      subtitle: "For Serious Developers",
-      price: "$9",
-      period: "month",
-      description: "Everything you need to stay updated",
+      name: "Starter",
+      subtitle: "For Individual Developers",
+      price: "$10",
+      period: "one-time",
+      description: "50 scans, pay as you go",
       icon: Zap,
       features: [
-        "Unlimited scans",
-        "GitHub repository integration",
-        "Vulnerability reports",
-        "Email notifications",
-        "Priority support",
-        "API access"
+        "50 scan credits",
+        "GitHub OAuth integration",
+        "Private & public repo access",
+        "Persistent scan history",
+        "Saved repositories for quick rescanning"
       ],
-      cta: "Start Pro Trial",
-      popular: true,
+      cta: "Buy Starter Pack",
+      popular: false,
     },
     {
-      name: "Team",
-      subtitle: "For Development Teams",
-      price: "$29",
-      period: "month",
-      description: "Built for collaboration",
-      icon: Users,
+      name: "Professional",
+      subtitle: "For Power Users",
+      price: "$25",
+      period: "one-time",
+      description: "150 scans, best value",
+      icon: Zap,
       features: [
-        "Everything in Pro",
-        "Unlimited repositories",
-        "Team dashboard",
-        "Advanced reporting",
-        "SSO integration",
-        "Dedicated support"
+        "150 scan credits",
+        "Everything in Starter",
+        "Export capabilities",
+        "Vulnerability tracking over time",
+        "Priority support"
       ],
-      cta: "Start Team Trial",
-      popular: false,
+      cta: "Buy Professional Pack",
+      popular: true,
     },
   ];
 
@@ -72,7 +71,7 @@ const PricingSection = ({ id }: PricingSectionProps ) => {
               <span className="block text-primary">Pricing</span>
             </h2>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-              Start free, upgrade when you need more. No hidden fees, no complicated tiers.
+              Start free, buy credits when you need more. No hidden fees, no complicated tiers.
             </p>
           </div>
 
