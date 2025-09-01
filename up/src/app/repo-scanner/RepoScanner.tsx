@@ -72,7 +72,7 @@ export default function RepoScanner() {
   const [detectedFileType, setDetectedFileType] = useState<FileType>("unknown");
   const [vulnerabilityLoading, setVulnerabilityLoading] = useState(false);
   const [error, setError] = useState("");
-  const [fileType, setFileType] = useState<"javascript" | "python">(
+  const [fileType, setFileType] = useState<"javascript" | "python" | "java">(
     "javascript"
   );
 
@@ -120,7 +120,9 @@ export default function RepoScanner() {
           return (
             file.name.toLowerCase().includes("requirements") ||
             file.name.toLowerCase().includes("pipfile") ||
-            file.name.toLowerCase().includes("pyproject.toml")
+            file.name.toLowerCase().includes("pyproject.toml") ||
+            file.name.toLowerCase().includes("pom.xml") ||
+            file.name.toLowerCase().includes("build.gradle")
           );
         }
       });
@@ -271,6 +273,18 @@ export default function RepoScanner() {
             title: adv.title,
           });
         }
+      } else if (detectedFileType === "java" && data.vulnerabilities) {
+        // Java vulnerability format
+        data.vulnerabilities.forEach((vuln: any) => {
+          const pkgName = vuln.packageName;
+          if (!vulnsMap.has(pkgName)) {
+            vulnsMap.set(pkgName, []);
+          }
+          vulnsMap.get(pkgName)!.push({
+            severity: vuln.severity,
+            title: vuln.title,
+          });
+        });
       }
 
       const updatedResults = results.map((dep) => ({

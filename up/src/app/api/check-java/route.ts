@@ -285,7 +285,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const concurrency = 6; // Maven Central can handle more concurrent requests
+    const concurrency = 2; // Maven Central can handle more concurrent requests
 
     const results = await pMap(
       dependencies,

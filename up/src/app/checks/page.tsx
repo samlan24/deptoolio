@@ -221,6 +221,18 @@ export default function Home() {
             title: adv.title,
           });
         }
+      } else if (detectedFileType === "java" && data.vulnerabilities) {
+        // Java vulnerability format
+        for (const vuln of data.vulnerabilities) {
+          const pkgName = vuln.packageName;
+          if (!vulnsMap.has(pkgName)) {
+            vulnsMap.set(pkgName, []);
+          }
+          vulnsMap.get(pkgName)!.push({
+            severity: vuln.severity,
+            title: vuln.title,
+          });
+        }
       }
 
       const updatedResults = results.map((dep) => ({
@@ -345,7 +357,7 @@ export default function Home() {
               <input
                 id="file-upload"
                 type="file"
-                accept=".json,.txt,.toml"
+                accept=".json,.txt,.toml,.xml"
                 onChange={handleFileUpload}
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                 disabled={isLoading || vulnerabilityLoading || authLoading}
