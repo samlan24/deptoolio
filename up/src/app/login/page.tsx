@@ -1,20 +1,20 @@
-"use client";
+"use client"
 
-import { createClient } from "../lib/supabase";
-import { Package, Github } from "lucide-react";
+import { createClient } from '../lib/supabase'
+import { Package, Github } from "lucide-react"
 
 export default function LoginPage() {
-  const supabase = createClient();
+  const supabase = createClient()
 
   const handleGitHubSignIn = async () => {
     await supabase.auth.signInWithOAuth({
-      provider: "github",
+      provider: 'github',
       options: {
-        redirectTo: `${location.origin}/dashboard`,
-        scopes: "read:user user:email repo",
-      },
-    });
-  };
+        redirectTo: `${location.origin}/auth/callback`,
+        scopes: 'read:user user:email repo'
+      }
+    })
+  }
 
   return (
     <div className="flex min-h-screen">
@@ -22,8 +22,8 @@ export default function LoginPage() {
       <div className="flex flex-col items-center justify-center w-1/2 bg-gray-900 text-white p-8">
         <h1 className="text-4xl font-bold mb-4">Welcome, Developer 🚀</h1>
         <p className="text-gray-300 mb-8 text-lg text-center max-w-md">
-          Manage your projects, track vulnerabilities, and stay ahead of
-          updates. Built for devs who ship fast and secure.
+          Manage your projects, track vulnerabilities, and stay ahead of updates.
+          Built for devs who ship fast and secure.
         </p>
         <button
           onClick={handleGitHubSignIn}
@@ -38,12 +38,12 @@ export default function LoginPage() {
       <div className="hidden md:flex w-1/2 bg-gray-100 items-center justify-center p-8">
         <div className="max-w-sm">
           <pre className="bg-black text-green-400 text-sm p-4 rounded-lg shadow-lg">
-            {`> npm install secure-stack
+{`> npm install secure-stack
 ✔ Dependencies up to date
 ✔ Ready to deploy`}
           </pre>
         </div>
       </div>
     </div>
-  );
+  )
 }

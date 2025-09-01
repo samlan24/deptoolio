@@ -55,7 +55,7 @@ type FileType = "npm" | "python" | "java" | "unknown";
 
 
 
-export default async function RepoScanner() {
+export default function RepoScanner() {
 
   const [repos, setRepos] = useState<Repo[]>([]);
   const [selectedRepo, setSelectedRepo] = useState<Repo | null>(null);

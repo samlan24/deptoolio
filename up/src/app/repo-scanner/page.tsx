@@ -1,7 +1,5 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
-import DashboardClient from "./RepoScanner";
-import { redirect } from "next/navigation";
 import RepoScanner from "./RepoScanner";
 
 async function createClient() {
@@ -31,9 +29,6 @@ export default async function Dashboard() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) {
-    redirect("/login");
-  }
 
   return (
     <div className="min-h-screen pt-20 max-w-7xl mx-auto px-6">
@@ -46,7 +41,7 @@ export default async function Dashboard() {
         </p>
       </div>
 
-      <RepoScanner />
+      <RepoScanner  />
     </div>
   );
 }
