@@ -32,6 +32,8 @@ async function findDependencyFiles(owner: string, repo: string, token: string) {
     `filename:requirements.txt repo:${owner}/${repo}`,
     `filename:Pipfile repo:${owner}/${repo}`,
     `filename:pyproject.toml repo:${owner}/${repo}`,
+    `filename:pom.xml repo:${owner}/${repo}`,
+    `filename:build.gradle repo:${owner}/${repo}`,
   ];
 
   const allFiles = [];
