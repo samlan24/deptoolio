@@ -1,7 +1,7 @@
 "use client"
 
 import { createClient } from '../lib/supabase'
-import { Package, Github } from "lucide-react"
+import { Github } from "lucide-react"
 
 export default function LoginPage() {
   const supabase = createClient()
@@ -17,17 +17,19 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen flex-col md:flex-row">
       {/* Left side */}
-      <div className="flex flex-col items-center justify-center w-1/2 bg-gray-900 text-white p-8">
-        <h1 className="text-4xl font-bold mb-4">Welcome, Developer 🚀</h1>
-        <p className="text-gray-300 mb-8 text-lg text-center max-w-md">
+      <div className="flex flex-col items-center justify-center w-full md:w-1/2 bg-gray-900 text-white p-8">
+        <h1 className="text-3xl md:text-4xl font-bold mb-4 text-center">
+          Welcome, Developer 🚀
+        </h1>
+        <p className="text-gray-300 mb-8 text-base md:text-lg text-center max-w-md">
           Manage your projects, track vulnerabilities, and stay ahead of updates.
           Built for devs who ship fast and secure.
         </p>
         <button
           onClick={handleGitHubSignIn}
-          className="flex items-center gap-2 px-6 py-3 bg-white text-black rounded-lg font-medium hover:bg-gray-200 transition"
+          className="flex items-center gap-2 px-5 py-3 bg-white text-black rounded-lg font-medium hover:bg-gray-200 transition"
         >
           <Github className="w-5 h-5" />
           Sign in with GitHub
