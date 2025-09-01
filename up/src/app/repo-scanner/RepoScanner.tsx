@@ -49,14 +49,12 @@ interface DependencyStatus {
   vulnerabilities?: { severity: string; title: string }[];
   maintainersCount?: number;
   lastUpdate?: string | null;
+  license?: string | null;
 }
 
 type FileType = "npm" | "python" | "java" | "unknown";
 
-
-
 export default function RepoScanner() {
-
   const [repos, setRepos] = useState<Repo[]>([]);
   const [selectedRepo, setSelectedRepo] = useState<Repo | null>(null);
   const [packageJsonFiles, setPackageJsonFiles] = useState<PackageJsonFile[]>(
@@ -614,6 +612,35 @@ export default function RepoScanner() {
     }
   };
 
+  const getLicenseColorClass = (license: string | null): string => {
+    if (!license) return "bg-gray-300 text-gray-700";
+
+    const normalized = license.toLowerCase();
+
+    if (
+      ["mit", "apache-2.0", "bsd-2-clause", "bsd-3-clause", "isc"].some((l) =>
+        normalized.includes(l)
+      )
+    ) {
+      return "bg-green-100 text-green-800"; // permissive licenses - green
+    }
+
+    if (["mpl-2.0", "epl-2.0"].some((l) => normalized.includes(l))) {
+      return "bg-yellow-100 text-yellow-800"; // moderate restrictions - yellow
+    }
+
+    if (
+      ["gpl", "agpl", "lgpl", "cddl", "ecl-2.0"].some((l) =>
+        normalized.includes(l)
+      )
+    ) {
+      return "bg-red-100 text-red-800"; // strict licenses - red
+    }
+
+    // Default case
+    return "bg-gray-300 text-gray-700"; // unknown or other licenses - gray
+  };
+
   return (
     <div className="min-h-screen pt-20 space-y-6">
       <div className="max-w-4xl mx-auto p-6 space-y-6 bg-gray-900 rounded-lg shadow-lg">
@@ -899,6 +926,16 @@ export default function RepoScanner() {
                             <span className="text-xs text-gray-500 block">
                               Last Update:{" "}
                               {new Date(dep.lastUpdate).toLocaleDateString()}
+                            </span>
+                          )}
+                          {dep.license && (
+                            <span
+                              className={`inline-block mt-1 px-3 py-0.5 rounded-full text-xs font-semibold ${getLicenseColorClass(
+                                dep.license
+                              )}`}
+                              title={`License: ${dep.license}`}
+                            >
+                              {dep.license}
                             </span>
                           )}
 
