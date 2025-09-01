@@ -239,6 +239,7 @@ const Navigation = () => {
                     >
                       Repo Checks
                     </Link>
+
                     <div className="pt-4 border-t border-border/50 space-y-3">
                       <div className="text-sm text-muted-foreground py-2">
                         Signed in as: {user.email}
