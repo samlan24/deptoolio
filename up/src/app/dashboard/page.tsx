@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import DashboardClient from './dashboard-client'
+import { redirect } from "next/navigation"
 
 async function createClient() {
   const cookieStore = await cookies()
@@ -26,6 +27,10 @@ async function createClient() {
 export default async function Dashboard() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) {
+    redirect("/login")
+  }
 
   return (
     <div className="min-h-screen pt-20 max-w-7xl mx-auto px-6">
