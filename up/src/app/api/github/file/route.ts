@@ -64,7 +64,7 @@ async function findDependencyFiles(owner: string, repo: string, token: string) {
 }
 
 // Add this function before your GET handler:
-function getFileType(filename: string): "npm" | "python" | "unknown" {
+function getFileType(filename: string): "npm" | "python" | "java" | "unknown" {
   const lowercaseName = filename.toLowerCase();
 
   if (lowercaseName.includes("package.json")) {
@@ -77,6 +77,12 @@ function getFileType(filename: string): "npm" | "python" | "unknown" {
     lowercaseName.includes("pyproject.toml")
   ) {
     return "python";
+  }
+  if (
+    lowercaseName.includes("pom.xml") ||
+    lowercaseName.includes("build.gradle")
+  ) {
+    return "java";
   }
 
   return "unknown";
