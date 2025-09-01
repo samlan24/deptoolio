@@ -18,6 +18,7 @@ interface DependencyResult {
   isPrerelease: boolean;
   maintainersCount?: number;
   lastUpdate?: string | null;
+  license?: string | null;
 }
 
 function extractGitHubRepoInfo(
@@ -244,7 +245,10 @@ export async function POST(request: NextRequest) {
             ? packageInfo.maintainers.length
             : 0;
 
-
+          const license =
+            typeof packageInfo.license === "string"
+              ? packageInfo.license
+              : packageInfo.license?.type || null;
 
           if (!packageInfo || typeof packageInfo !== "object") {
             console.log(`Skipping ${name}: invalid package info received`);
@@ -252,7 +256,9 @@ export async function POST(request: NextRequest) {
           }
 
           const latestVersion = packageInfo["dist-tags"]?.latest;
-          const lastUpdate = latestVersion ? packageInfo.time?.[latestVersion] : null;
+          const lastUpdate = latestVersion
+            ? packageInfo.time?.[latestVersion]
+            : null;
           const latestStable = getLatestStableVersion(packageInfo);
 
           if (!latestVersion) {
@@ -280,6 +286,7 @@ export async function POST(request: NextRequest) {
             isPrerelease: !!semver.prerelease(latestVersion),
             maintainersCount,
             lastUpdate,
+            license,
           };
 
           return result;

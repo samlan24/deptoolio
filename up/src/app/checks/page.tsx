@@ -24,6 +24,7 @@ interface DependencyStatus {
   vulnerabilities?: { severity: string; title: string }[];
   maintainersCount?: number;
   lastUpdate?: string | null;
+  license?: string | null;
 }
 
 // Update your FileType to include Java
@@ -305,6 +306,35 @@ export default function Home() {
     return { total, current, outdated, major };
   };
 
+  const getLicenseColorClass = (license: string | null): string => {
+    if (!license) return "bg-gray-300 text-gray-700";
+
+    const normalized = license.toLowerCase();
+
+    if (
+      ["mit", "apache-2.0", "bsd-2-clause", "bsd-3-clause", "isc"].some((l) =>
+        normalized.includes(l)
+      )
+    ) {
+      return "bg-green-100 text-green-800"; // permissive licenses - green
+    }
+
+    if (["mpl-2.0", "epl-2.0"].some((l) => normalized.includes(l))) {
+      return "bg-yellow-100 text-yellow-800"; // moderate restrictions - yellow
+    }
+
+    if (
+      ["gpl", "agpl", "lgpl", "cddl", "ecl-2.0"].some((l) =>
+        normalized.includes(l)
+      )
+    ) {
+      return "bg-red-100 text-red-800"; // strict licenses - red
+    }
+
+    // Default case
+    return "bg-gray-300 text-gray-700"; // unknown or other licenses - gray
+  };
+
   const fileTypeInfo = getFileTypeInfo(detectedFileType);
   const stats = getSummaryStats();
 
@@ -514,6 +544,16 @@ export default function Home() {
                               <span className="text-xs text-gray-500 block">
                                 Last Update:{" "}
                                 {new Date(dep.lastUpdate).toLocaleDateString()}
+                              </span>
+                            )}
+                            {dep.license && (
+                              <span
+                                className={`inline-block mt-1 px-3 py-0.5 rounded-full text-xs font-semibold ${getLicenseColorClass(
+                                  dep.license
+                                )}`}
+                                title={`License: ${dep.license}`}
+                              >
+                                {dep.license}
                               </span>
                             )}
 
