@@ -26,7 +26,8 @@ interface DependencyStatus {
   lastUpdate?: string | null;
 }
 
-type FileType = "npm" | "python" | "unknown";
+// Update your FileType to include Java
+type FileType = "npm" | "python" | "java" | "unknown";
 
 export default function Home() {
   const [results, setResults] = useState<DependencyStatus[]>([]);
@@ -54,6 +55,13 @@ export default function Home() {
       return "python";
     }
 
+    if (
+      lowercaseName.includes("pom.xml") ||
+      lowercaseName.includes("build.gradle")
+    ) {
+      return "java";
+    }
+
     return "unknown";
   };
 
@@ -61,9 +69,11 @@ export default function Home() {
   const getApiEndpoint = (fileType: FileType): string => {
     switch (fileType) {
       case "npm":
-        return "/api/check-js"; // version check only
+        return "/api/check-js";
       case "python":
         return "/api/check-python";
+      case "java":
+        return "/api/check-java";
       default:
         return "";
     }
@@ -85,6 +95,13 @@ export default function Home() {
           label: "Python",
           color: "text-blue-600",
           bgColor: "bg-blue-50",
+        };
+      case "java":
+        return {
+          icon: <Package className="w-5 h-5 text-orange-600" />,
+          label: "Java/Maven",
+          color: "text-orange-600",
+          bgColor: "bg-orange-50",
         };
       default:
         return {
@@ -157,7 +174,15 @@ export default function Home() {
     });
 
     try {
-      const response = await fetch("/api/check-js-vulnerabilities", {
+      // Update your vulnerability endpoint selection:
+      const vulnEndpoint =
+        detectedFileType === "python"
+          ? "/api/check-py-vulnerabilities"
+          : detectedFileType === "java"
+          ? "/api/check-java-vulnerabilities"
+          : "/api/check-js-vulnerabilities";
+
+      const response = await fetch(vulnEndpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ dependencies: depsForScan }),
@@ -170,7 +195,22 @@ export default function Home() {
       }
 
       const vulnsMap = new Map<string, { severity: string; title: string }[]>();
-      if (data.advisories) {
+
+      // Handle different response formats for Python vs JavaScript
+      if (detectedFileType === "python" && data.advisories) {
+        // Python vulnerability format
+        for (const adv of Object.values<any>(data.advisories)) {
+          const pkgName = adv.module_name;
+          if (!vulnsMap.has(pkgName)) {
+            vulnsMap.set(pkgName, []);
+          }
+          vulnsMap.get(pkgName)!.push({
+            severity: adv.severity,
+            title: adv.title,
+          });
+        }
+      } else if (detectedFileType === "npm" && data.advisories) {
+        // JavaScript vulnerability format
         for (const adv of Object.values<any>(data.advisories)) {
           const pkgName = adv.module_name;
           if (!vulnsMap.has(pkgName)) {
@@ -193,6 +233,24 @@ export default function Home() {
       alert("Failed to scan vulnerabilities.");
     } finally {
       setVulnerabilityLoading(false);
+    }
+  };
+
+  // get vulnerability scan button text
+  const getVulnerabilityScanText = () => {
+    if (vulnerabilityLoading) {
+      return "Scanning Vulnerabilities...";
+    }
+
+    switch (detectedFileType) {
+      case "python":
+        return "Scan Python Vulnerabilities";
+      case "npm":
+        return "Scan JavaScript Vulnerabilities";
+      case "java":
+        return "Scan Java Vulnerabilities";
+      default:
+        return "Scan Vulnerabilities";
     }
   };
 
@@ -377,9 +435,7 @@ export default function Home() {
                 disabled={vulnerabilityLoading}
                 className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:bg-red-300"
               >
-                {vulnerabilityLoading
-                  ? "Scanning Vulnerabilities..."
-                  : "Scan Vulnerabilities"}
+                {getVulnerabilityScanText()}
               </button>
             </div>
 

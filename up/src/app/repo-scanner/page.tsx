@@ -30,6 +30,10 @@ interface PackageJsonFile {
   name: string;
   path: string;
   html_url: string;
+  typeInfo: {
+    icon: React.ReactNode;
+    label: string;
+  };
 }
 
 interface DependencyStatus {
@@ -47,6 +51,8 @@ interface DependencyStatus {
   lastUpdate?: string | null;
 }
 
+type FileType = "npm" | "python" | "java" | "unknown";
+
 export default function RepoScanner() {
   const [repos, setRepos] = useState<Repo[]>([]);
   const [selectedRepo, setSelectedRepo] = useState<Repo | null>(null);
@@ -60,6 +66,7 @@ export default function RepoScanner() {
   const [searching, setSearching] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [results, setResults] = useState<DependencyStatus[]>([]);
+  const [detectedFileType, setDetectedFileType] = useState<FileType>("unknown");
   const [vulnerabilityLoading, setVulnerabilityLoading] = useState(false);
   const [error, setError] = useState("");
   const [fileType, setFileType] = useState<"javascript" | "python">(
@@ -152,44 +159,44 @@ export default function RepoScanner() {
         throw new Error(`Failed to fetch ${selectedFile.path}`);
       }
 
-      const { content, fileType: detectedFileType } = await fileResponse.json();
+      const { content } = await fileResponse.json();
 
-      // Create appropriate file and choose API endpoint
-      let file, scanResponse;
+      // Detect file type automatically
+      const detectedType = detectFileType(selectedFile.path);
+      setDetectedFileType(detectedType);
 
-      if (fileType === "python") {
-        file = new File(
-          [content],
-          selectedFile.path.split("/").pop() || "requirements.txt",
-          {
-            type: "text/plain",
-          }
-        );
-        const formData = new FormData();
-        formData.append("file", file);
-
-        scanResponse = await fetch("/api/check-python", {
-          method: "POST",
-          body: formData,
-        });
-      } else {
-        file = new File([content], "package.json", {
-          type: "application/json",
-        });
-        const formData = new FormData();
-        formData.append("file", file);
-
-        scanResponse = await fetch("/api/check-js", {
-          method: "POST",
-          body: formData,
-        });
+      if (detectedType === "unknown") {
+        throw new Error("Unsupported file type detected");
       }
+
+      // Create file and use appropriate endpoint
+      const file = new File(
+        [content],
+        selectedFile.path.split("/").pop() || "dependency-file",
+        {
+          type: detectedType === "npm" ? "application/json" : "text/plain",
+        }
+      );
+
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const endpoint = getApiEndpoint(detectedType);
+      const scanResponse = await fetch(endpoint, {
+        method: "POST",
+        body: formData,
+      });
 
       if (!scanResponse.ok) {
         throw new Error("Failed to scan dependencies");
       }
 
       const scanResults = await scanResponse.json();
+
+      if (scanResults.error) {
+        throw new Error(scanResults.error);
+      }
+
       setResults(scanResults);
       saveScanToHistory(selectedRepo, selectedFile, scanResults);
     } catch (err) {
@@ -215,7 +222,14 @@ export default function RepoScanner() {
     });
 
     try {
-      const response = await fetch("/api/check-js-vulnerabilities", {
+      const vulnEndpoint =
+        detectedFileType === "python"
+          ? "/api/check-py-vulnerabilities"
+          : detectedFileType === "java"
+          ? "/api/check-java-vulnerabilities"
+          : "/api/check-js-vulnerabilities";
+
+      const response = await fetch(vulnEndpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ dependencies: depsForScan }),
@@ -228,7 +242,22 @@ export default function RepoScanner() {
       }
 
       const vulnsMap = new Map<string, { severity: string; title: string }[]>();
-      if (data.advisories) {
+
+      // Handle different response formats for Python vs JavaScript
+      if (detectedFileType === "python" && data.advisories) {
+        // Python vulnerability format
+        for (const adv of Object.values<any>(data.advisories)) {
+          const pkgName = adv.module_name;
+          if (!vulnsMap.has(pkgName)) {
+            vulnsMap.set(pkgName, []);
+          }
+          vulnsMap.get(pkgName)!.push({
+            severity: adv.severity,
+            title: adv.title,
+          });
+        }
+      } else if (detectedFileType === "npm" && data.advisories) {
+        // JavaScript vulnerability format (your existing logic)
         for (const adv of Object.values<any>(data.advisories)) {
           const pkgName = adv.module_name;
           if (!vulnsMap.has(pkgName)) {
@@ -251,6 +280,24 @@ export default function RepoScanner() {
       alert("Failed to scan vulnerabilities.");
     } finally {
       setVulnerabilityLoading(false);
+    }
+  };
+
+  // Add this helper function to your component:
+  const getVulnerabilityScanText = () => {
+    if (vulnerabilityLoading) {
+      return "Scanning Vulnerabilities...";
+    }
+
+    switch (detectedFileType) {
+      case "python":
+        return "Scan Python Vulnerabilities";
+      case "npm":
+        return "Scan JavaScript Vulnerabilities";
+      case "java":
+        return "Scan Java Vulnerabilities";
+      default:
+        return "Scan Vulnerabilities";
     }
   };
 
@@ -435,6 +482,121 @@ export default function RepoScanner() {
     }
   };
 
+  // File type detection logic (same as file upload version)
+  const detectFileType = (filename: string): FileType => {
+    const lowercaseName = filename.toLowerCase();
+
+    if (lowercaseName.includes("package.json")) {
+      return "npm";
+    }
+
+    if (
+      lowercaseName.includes("requirements") ||
+      lowercaseName.includes("pipfile") ||
+      lowercaseName.includes("pyproject.toml")
+    ) {
+      return "python";
+    }
+
+    if (
+      lowercaseName.includes("pom.xml") ||
+      lowercaseName.includes("build.gradle")
+    ) {
+      return "java";
+    }
+
+    return "unknown";
+  };
+
+  // Get appropriate API endpoint based on file type
+  const getApiEndpoint = (fileType: FileType): string => {
+    switch (fileType) {
+      case "npm":
+        return "/api/check-js";
+      case "python":
+        return "/api/check-python";
+      case "java":
+        return "/api/check-java";
+      default:
+        return "";
+    }
+  };
+
+  // Display info for file types
+  const getFileTypeInfo = (fileType: FileType) => {
+    switch (fileType) {
+      case "npm":
+        return {
+          icon: <Package className="w-5 h-5 text-green-600" />,
+          label: "Node.js/npm",
+          color: "text-green-600",
+          bgColor: "bg-green-50",
+        };
+      case "python":
+        return {
+          icon: <Code className="w-5 h-5 text-blue-600" />,
+          label: "Python",
+          color: "text-blue-600",
+          bgColor: "bg-blue-50",
+        };
+      case "java":
+        return {
+          icon: <Package className="w-5 h-5 text-orange-600" />,
+          label: "Java/Maven",
+          color: "text-orange-600",
+          bgColor: "bg-orange-50",
+        };
+      default:
+        return {
+          icon: <FileText className="w-5 h-5 text-gray-600" />,
+          label: "Unknown",
+          color: "text-gray-600",
+          bgColor: "bg-gray-50",
+        };
+    }
+  };
+
+  //getting depedency files
+  const searchAllDependencyFiles = async () => {
+    if (!selectedRepo) return;
+
+    setSearching(true);
+    setError("");
+    setPackageJsonFiles([]);
+    setSelectedFile(null);
+
+    try {
+      const [owner, repo] = selectedRepo.full_name.split("/");
+      const response = await fetch(
+        `/api/github/file?owner=${owner}&repo=${repo}`
+      );
+
+      if (!response.ok)
+        throw new Error("Failed to search for dependency files");
+
+      const data = await response.json();
+
+      // Auto-detect and categorize all files
+      const categorizedFiles = data.files
+        .map((file: any) => ({
+          ...file,
+          detectedType: detectFileType(file.name),
+          typeInfo: getFileTypeInfo(detectFileType(file.name)),
+        }))
+        .filter((file: any) => file.detectedType !== "unknown");
+
+      setPackageJsonFiles(categorizedFiles);
+
+      if (categorizedFiles.length === 0) {
+        setError("No supported dependency files found in this repository");
+      }
+    } catch (err) {
+      setError("Failed to search for dependency files");
+    } finally {
+      setSearching(false);
+    }
+  };
+
   return (
     <div className="min-h-screen pt-20 space-y-6">
       <div className="max-w-4xl mx-auto px-6">
@@ -506,93 +668,67 @@ export default function RepoScanner() {
               </div>
 
               {selectedRepo && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-800 mb-2">
-                    File Type to Search
-                  </label>
-                  <div className="flex space-x-4 mb-4">
-                    <button
-                      onClick={() => setFileType("javascript")}
-                      className={`px-4 py-2 rounded-lg ${
-                        fileType === "javascript"
-                          ? "bg-blue-600 text-white"
-                          : "bg-gray-200 text-gray-700"
-                      }`}
-                    >
-                      JavaScript (package.json)
-                    </button>
-                    <button
-                      onClick={() => setFileType("python")}
-                      className={`px-4 py-2 rounded-lg ${
-                        fileType === "python"
-                          ? "bg-blue-600 text-white"
-                          : "bg-gray-200 text-gray-700"
-                      }`}
-                    >
-                      Python (requirements.txt, etc.)
-                    </button>
-                  </div>
+                <div className="space-y-3">
+                  <button
+                    onClick={searchAllDependencyFiles}
+                    disabled={searching}
+                    className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
+                  >
+                    {searching
+                      ? "Scanning Repository..."
+                      : "Find All Dependency Files"}
+                  </button>
 
-                  <div className="space-y-3">
-                    <button
-                      onClick={searchDependencyFiles}
-                      disabled={searching}
-                      className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
-                    >
-                      {searching ? "Searching..." : `Find ${fileType} files`}
-                    </button>
-
-                    {packageJsonFiles.length > 0 && (
-                      <div>
-                        <label className="block text-sm font-medium text-gray-800 mb-2">
-                          Select{" "}
-                          {fileType === "javascript"
-                            ? "package.json"
-                            : "dependency"}{" "}
-                          file
-                        </label>
-                        <Select
-                          value={selectedFile?.path || ""}
-                          onValueChange={(value) => {
-                            const file = packageJsonFiles.find(
-                              (f) => f.path === value
-                            );
-                            setSelectedFile(file || null);
-                          }}
-                        >
-                          <SelectTrigger className="w-full bg-gray-700 text-white border border-gray-600 rounded-lg">
-                            <SelectValue
-                              placeholder={`Choose a ${fileType} file...`}
-                            />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {packageJsonFiles.map((file) => (
-                              <SelectItem key={file.path} value={file.path}>
-                                {file.path}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    )}
-
-                    {selectedFile && (
-                      <button
-                        onClick={scanPackageJson}
-                        disabled={scanning}
-                        className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+                  {packageJsonFiles.length > 0 && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-800 mb-2">
+                        Found {packageJsonFiles.length} dependency file(s) -
+                        Select one to scan:
+                      </label>
+                      <Select
+                        value={selectedFile?.path || ""}
+                        onValueChange={(value) => {
+                          const file = packageJsonFiles.find(
+                            (f) => f.path === value
+                          );
+                          setSelectedFile(file || null);
+                        }}
                       >
-                        {scanning ? (
-                          <div className="flex items-center space-x-2 justify-center">
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                            <span>Scanning Dependencies...</span>
-                          </div>
-                        ) : (
-                          `Scan ${selectedFile.path}`
-                        )}
-                      </button>
-                    )}
-                  </div>
+                        <SelectTrigger className="w-full bg-gray-700 text-white border border-gray-600 rounded-lg">
+                          <SelectValue placeholder="Choose a dependency file..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {packageJsonFiles.map((file) => (
+                            <SelectItem key={file.path} value={file.path}>
+                              <div className="flex items-center space-x-2">
+                                {file.typeInfo.icon}
+                                <span>{file.typeInfo.label}</span>
+                                <span className="text-gray-400">•</span>
+                                <span>{file.path}</span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
+                  {selectedFile && (
+                    <button
+                      onClick={scanPackageJson}
+                      disabled={scanning}
+                      className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+                    >
+                      {scanning ? (
+                        <div className="flex items-center space-x-2 justify-center">
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                          <span>Scanning Dependencies...</span>
+                        </div>
+                      ) : (
+                        `Scan ${selectedFile.path}`
+                      )}
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -604,6 +740,25 @@ export default function RepoScanner() {
             </div>
           )}
           {/* Recent Scans - Only show if there are any */}
+          {selectedFile && detectedFileType !== "unknown" && (
+            <div className="mb-4 text-center">
+              <div
+                className={`inline-flex items-center space-x-2 px-4 py-2 rounded-full ${
+                  getFileTypeInfo(detectedFileType).bgColor
+                }`}
+              >
+                {getFileTypeInfo(detectedFileType).icon}
+                <span
+                  className={`text-sm font-medium ${
+                    getFileTypeInfo(detectedFileType).color
+                  }`}
+                >
+                  {getFileTypeInfo(detectedFileType).label} •{" "}
+                  {selectedFile.path}
+                </span>
+              </div>
+            </div>
+          )}
           {scanHistory.length > 0 && (
             <div className="bg-white rounded-lg shadow p-6 mb-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">
@@ -669,9 +824,7 @@ export default function RepoScanner() {
                 disabled={vulnerabilityLoading}
                 className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:bg-red-300"
               >
-                {vulnerabilityLoading
-                  ? "Scanning Vulnerabilities..."
-                  : "Scan Vulnerabilities"}
+                {getVulnerabilityScanText()}
               </button>
             </div>
 
