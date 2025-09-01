@@ -35,7 +35,7 @@ const HeroSection = () => {
             <p className="text-xl md:text-2xl text-muted-foreground max-w-4xl mx-auto mb-8 leading-relaxed">
               Upload your package.json, requirements.txt, or any dependency file
               and instantly see which packages need updating. Works with
-              Node.js, Python, Go, Rust, and more.
+              Node.js, Python, Go, PHP, and more.
             </p>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 max-w-4xl mx-auto mb-12">
