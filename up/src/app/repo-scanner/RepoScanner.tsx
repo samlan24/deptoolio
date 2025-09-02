@@ -343,7 +343,7 @@ export default function RepoScanner() {
       case "php":
         return "Scan PHP Vulnerabilities";
       case "go":
-        return "Vulnerabilities Not Available";
+        return "Vulnerability Scan Not Available";
       case "rust":
         return "Scan Rust Vulnerabilities";
       case "net":
