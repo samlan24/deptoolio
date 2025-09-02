@@ -13,7 +13,7 @@ const ProductIntroSection = ({ id }: ProductIntroSectionProps) => {
     { icon: Shield, title: "Security Scanning", desc: "Vulnerability detection" },
     { icon: BarChart3, title: "Bulk Analysis", desc: "Multiple repositories" },
     { icon: Zap, title: "Automated PRs", desc: "Smart update suggestions" },
-    { icon: CheckCircle, title: "6+ Languages", desc: "More coming soon" },
+    { icon: CheckCircle, title: "4+ Languages", desc: "More coming soon" },
   ];
 
   return (
