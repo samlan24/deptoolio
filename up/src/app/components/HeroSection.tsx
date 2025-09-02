@@ -9,7 +9,6 @@ import {
   PythonOriginal,
   GoOriginal,
   PhpOriginal,
-  NodejsOriginal,
   RustOriginal,
   COriginal,
 
@@ -98,7 +97,6 @@ const HeroSection = () => {
               <GoOriginal size={30} />
               <RustOriginal size={30} />
               <PhpOriginal size={30} />
-              <NodejsOriginal size={30} />
               <COriginal size={30} />
             </div>
           </div>
