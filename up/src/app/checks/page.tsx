@@ -28,7 +28,7 @@ interface DependencyStatus {
 }
 
 // Update your FileType to include Rust
-type FileType = "npm" | "python" | "java" | "go" | "php" | "rust" | "unknown";
+type FileType = "npm" | "python" | "go" | "php" | "rust" | "unknown";
 
 export default function Home() {
   const [results, setResults] = useState<DependencyStatus[]>([]);
@@ -56,12 +56,6 @@ export default function Home() {
       return "python";
     }
 
-    if (
-      lowercaseName.includes("pom.xml") ||
-      lowercaseName.includes("build.gradle")
-    ) {
-      return "java";
-    }
     if (lowercaseName.includes("composer.json")) {
       return "php";
     }
@@ -84,8 +78,6 @@ export default function Home() {
         return "/api/check-js";
       case "python":
         return "/api/check-python";
-      case "java":
-        return "/api/check-java";
       case "go":
         return "/api/check-go";
       case "php":
@@ -113,13 +105,6 @@ export default function Home() {
           label: "Python",
           color: "text-blue-600",
           bgColor: "bg-blue-50",
-        };
-      case "java":
-        return {
-          icon: <Package className="w-5 h-5 text-orange-600" />,
-          label: "Java/Maven",
-          color: "text-orange-600",
-          bgColor: "bg-orange-50",
         };
 
       case "php":
@@ -219,8 +204,6 @@ export default function Home() {
       const vulnEndpoint =
         detectedFileType === "python"
           ? "/api/check-py-vulnerabilities"
-          : detectedFileType === "java"
-          ? "/api/check-java-vulnerabilities"
           : detectedFileType === "php"
           ? "/api/check-php-vulnerabilities"
           : detectedFileType === "rust"
@@ -264,18 +247,6 @@ export default function Home() {
           vulnsMap.get(pkgName)!.push({
             severity: adv.severity,
             title: adv.title,
-          });
-        }
-      } else if (detectedFileType === "java" && data.vulnerabilities) {
-        // Java vulnerability format
-        for (const vuln of data.vulnerabilities) {
-          const pkgName = vuln.packageName;
-          if (!vulnsMap.has(pkgName)) {
-            vulnsMap.set(pkgName, []);
-          }
-          vulnsMap.get(pkgName)!.push({
-            severity: vuln.severity,
-            title: vuln.title,
           });
         }
       } else if (detectedFileType === "php" && data.vulnerabilities) {
@@ -328,8 +299,7 @@ export default function Home() {
         return "Scan Python Vulnerabilities";
       case "npm":
         return "Scan JavaScript Vulnerabilities";
-      case "java":
-        return "Scan Java Vulnerabilities";
+
       case "php":
         return "Scan PHP Vulnerabilities";
       case "go":
@@ -461,7 +431,7 @@ export default function Home() {
               <input
                 id="file-upload"
                 type="file"
-                accept=".json,.txt,.toml,.xml,.mod"
+                accept=".json,.txt,.toml,.mod"
                 onChange={handleFileUpload}
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                 disabled={isLoading || vulnerabilityLoading || authLoading}

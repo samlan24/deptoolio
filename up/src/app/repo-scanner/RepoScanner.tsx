@@ -52,7 +52,7 @@ interface DependencyStatus {
   license?: string | null;
 }
 
-type FileType = "npm" | "python" | "java" | "go" | "php" | "rust" | "unknown";
+type FileType = "npm" | "python" | "go" | "php" | "rust" | "unknown";
 
 export default function RepoScanner() {
   const [repos, setRepos] = useState<Repo[]>([]);
@@ -70,7 +70,7 @@ export default function RepoScanner() {
   const [detectedFileType, setDetectedFileType] = useState<FileType>("unknown");
   const [vulnerabilityLoading, setVulnerabilityLoading] = useState(false);
   const [error, setError] = useState("");
-  const [fileType, setFileType] = useState<"javascript" | "python" | "java" | "go" | "php" | "rust">(
+  const [fileType, setFileType] = useState<"javascript" | "python" | "go" | "php" | "rust">(
     "javascript"
   );
 
@@ -119,8 +119,6 @@ export default function RepoScanner() {
             file.name.toLowerCase().includes("requirements") ||
             file.name.toLowerCase().includes("pipfile") ||
             file.name.toLowerCase().includes("pyproject.toml") ||
-            file.name.toLowerCase().includes("pom.xml") ||
-            file.name.toLowerCase().includes("build.gradle") ||
             file.name.toLowerCase().includes("go.mod") ||
             file.name.toLowerCase().includes("composer.json") ||
             file.name.toLowerCase().includes("cargo.toml")
@@ -231,8 +229,7 @@ export default function RepoScanner() {
       const vulnEndpoint =
         detectedFileType === "python"
           ? "/api/check-py-vulnerabilities"
-          : detectedFileType === "java"
-          ? "/api/check-java-vulnerabilities"
+
           : detectedFileType === "php"
           ? "/api/check-php-vulnerabilities"
           : detectedFileType === "rust"
@@ -278,18 +275,6 @@ export default function RepoScanner() {
             title: adv.title,
           });
         }
-      } else if (detectedFileType === "java" && data.vulnerabilities) {
-        // Java vulnerability format
-        data.vulnerabilities.forEach((vuln: any) => {
-          const pkgName = vuln.packageName;
-          if (!vulnsMap.has(pkgName)) {
-            vulnsMap.set(pkgName, []);
-          }
-          vulnsMap.get(pkgName)!.push({
-            severity: vuln.severity,
-            title: vuln.title,
-          });
-        });
       } else if (detectedFileType === "php" && data.vulnerabilities) {
         // PHP vulnerability format
         data.vulnerabilities.forEach((vuln: any) => {
@@ -340,8 +325,7 @@ export default function RepoScanner() {
         return "Scan Python Vulnerabilities";
       case "npm":
         return "Scan JavaScript Vulnerabilities";
-      case "java":
-        return "Scan Java Vulnerabilities";
+
       case "php":
         return "Scan PHP Vulnerabilities";
       case "go":
@@ -493,7 +477,7 @@ export default function RepoScanner() {
       if (targetFile) {
         setSelectedFile(targetFile);
         // Set the file type to match the scan
-        setFileType(scan.file_type as "javascript" | "python" | "java" | "go" | "php" | "rust");
+        setFileType(scan.file_type as "javascript" | "python" | "go" | "php" | "rust");
 
         // Auto-scan after setting file with a longer delay
         setTimeout(() => {
@@ -550,12 +534,6 @@ export default function RepoScanner() {
       return "python";
     }
 
-    if (
-      lowercaseName.includes("pom.xml") ||
-      lowercaseName.includes("build.gradle")
-    ) {
-      return "java";
-    }
     if (lowercaseName.includes("composer.json")) {
       return "php";
     }
@@ -578,8 +556,6 @@ export default function RepoScanner() {
         return "/api/check-js";
       case "python":
         return "/api/check-python";
-      case "java":
-        return "/api/check-java";
       case "go":
         return "/api/check-go";
       case "php":
@@ -607,13 +583,6 @@ export default function RepoScanner() {
           label: "Python",
           color: "text-blue-600",
           bgColor: "bg-blue-50",
-        };
-      case "java":
-        return {
-          icon: <Package className="w-5 h-5 text-orange-600" />,
-          label: "Java/Maven",
-          color: "text-orange-600",
-          bgColor: "bg-orange-50",
         };
       case "php":
         return {
