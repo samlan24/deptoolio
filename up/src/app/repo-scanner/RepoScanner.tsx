@@ -52,7 +52,7 @@ interface DependencyStatus {
   license?: string | null;
 }
 
-type FileType = "npm" | "python" | "go" | "php" | "rust" | "unknown";
+type FileType = "npm" | "python" | "go" | "php" | "rust" | "net" | "unknown";
 
 export default function RepoScanner() {
   const [repos, setRepos] = useState<Repo[]>([]);
@@ -70,9 +70,9 @@ export default function RepoScanner() {
   const [detectedFileType, setDetectedFileType] = useState<FileType>("unknown");
   const [vulnerabilityLoading, setVulnerabilityLoading] = useState(false);
   const [error, setError] = useState("");
-  const [fileType, setFileType] = useState<"javascript" | "python" | "go" | "php" | "rust">(
-    "javascript"
-  );
+  const [fileType, setFileType] = useState<
+    "javascript" | "python" | "go" | "php" | "rust" | "net"
+  >("javascript");
 
   const fetchRepos = async () => {
     setLoading(true);
@@ -121,7 +121,8 @@ export default function RepoScanner() {
             file.name.toLowerCase().includes("pyproject.toml") ||
             file.name.toLowerCase().includes("go.mod") ||
             file.name.toLowerCase().includes("composer.json") ||
-            file.name.toLowerCase().includes("cargo.toml")
+            file.name.toLowerCase().includes("cargo.toml") ||
+            file.name.toLowerCase().endsWith(".csproj")
           );
         }
       });
@@ -229,11 +230,12 @@ export default function RepoScanner() {
       const vulnEndpoint =
         detectedFileType === "python"
           ? "/api/check-py-vulnerabilities"
-
           : detectedFileType === "php"
           ? "/api/check-php-vulnerabilities"
           : detectedFileType === "rust"
           ? "/api/check-rust-vulnerabilities"
+          : detectedFileType === "net"
+          ? "/api/check-net-vulnerabilities"
           : "/api/check-js-vulnerabilities";
 
       const response = await fetch(vulnEndpoint, {
@@ -299,6 +301,18 @@ export default function RepoScanner() {
             title: vuln.title,
           });
         });
+      } else if (detectedFileType === "net" && data.audit) {
+        // .NET vulnerability format
+        data.audit.forEach((vuln: any) => {
+          const pkgName = vuln.packageName;
+          if (!vulnsMap.has(pkgName)) {
+            vulnsMap.set(pkgName, []);
+          }
+          vulnsMap.get(pkgName)!.push({
+            severity: vuln.severity,
+            title: vuln.title,
+          });
+        });
       }
 
       const updatedResults = results.map((dep) => ({
@@ -332,6 +346,8 @@ export default function RepoScanner() {
         return "Vulnerabilities Not Available";
       case "rust":
         return "Scan Rust Vulnerabilities";
+      case "net":
+        return "Scan .NET Vulnerabilities";
       default:
         return "Scan Vulnerabilities";
     }
@@ -477,7 +493,15 @@ export default function RepoScanner() {
       if (targetFile) {
         setSelectedFile(targetFile);
         // Set the file type to match the scan
-        setFileType(scan.file_type as "javascript" | "python" | "go" | "php" | "rust");
+        setFileType(
+          scan.file_type as
+            | "javascript"
+            | "python"
+            | "go"
+            | "php"
+            | "rust"
+            | "net"
+        );
 
         // Auto-scan after setting file with a longer delay
         setTimeout(() => {
@@ -545,6 +569,9 @@ export default function RepoScanner() {
     if (lowercaseName.includes("cargo.toml")) {
       return "rust";
     }
+    if (lowercaseName.endsWith(".csproj")) {
+      return "net";
+    }
 
     return "unknown";
   };
@@ -562,6 +589,8 @@ export default function RepoScanner() {
         return "/api/check-php";
       case "rust":
         return "/api/check-rust";
+      case "net":
+        return "/api/check-net";
       default:
         return "";
     }
@@ -605,6 +634,14 @@ export default function RepoScanner() {
           color: "text-orange-700",
           bgColor: "bg-orange-50",
         };
+      case "net":
+        return {
+          icon: <Package className="w-5 h-5 text-blue-700" />,
+          label: ".NET/NuGet Packages",
+          color: "text-blue-700",
+          bgColor: "bg-blue-50",
+        };
+
       default:
         return {
           icon: <FileText className="w-5 h-5 text-gray-600" />,
@@ -901,8 +938,17 @@ export default function RepoScanner() {
             <div className="text-right">
               <button
                 onClick={handleVulnerabilityScan}
-                disabled={vulnerabilityLoading}
-                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:bg-red-300"
+                disabled={vulnerabilityLoading || detectedFileType === "go"}
+                title={
+                  detectedFileType === "go"
+                    ? "Go vulnerability scanning is not currently supported"
+                    : ""
+                }
+                className={`px-4 py-2 text-white rounded transition-colors ${
+                  detectedFileType === "go"
+                    ? "bg-gray-400 cursor-not-allowed opacity-60"
+                    : "bg-red-600 hover:bg-red-700 disabled:bg-red-300"
+                }`}
               >
                 {getVulnerabilityScanText()}
               </button>

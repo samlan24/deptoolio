@@ -28,7 +28,7 @@ interface DependencyStatus {
 }
 
 // Update your FileType to include Rust
-type FileType = "npm" | "python" | "go" | "php" | "rust" | "unknown";
+type FileType = "npm" | "python" | "go" | "php" | "rust" | "net" | "unknown";
 
 export default function Home() {
   const [results, setResults] = useState<DependencyStatus[]>([]);
@@ -67,6 +67,9 @@ export default function Home() {
     if (lowercaseName.includes("cargo.toml")) {
       return "rust";
     }
+    if (lowercaseName.endsWith(".csproj")) {
+      return "net";
+    }
 
     return "unknown";
   };
@@ -84,6 +87,8 @@ export default function Home() {
         return "/api/check-php";
       case "rust":
         return "/api/check-rust";
+      case "net":
+        return "/api/check-net";
       default:
         return "";
     }
@@ -127,6 +132,14 @@ export default function Home() {
           label: "Rust/Modules",
           color: "text-orange-700",
           bgColor: "bg-orange-50",
+        };
+
+      case "net":
+        return {
+          icon: <Package className="w-5 h-5 text-blue-700" />,
+          label: ".NET/NuGet Packages",
+          color: "text-blue-700",
+          bgColor: "bg-blue-50",
         };
 
       default:
@@ -208,6 +221,8 @@ export default function Home() {
           ? "/api/check-php-vulnerabilities"
           : detectedFileType === "rust"
           ? "/api/check-rust-vulnerabilities"
+          : detectedFileType === "net"
+          ? "/api/check-net-vulnerabilities"
           : "/api/check-js-vulnerabilities";
 
       const response = await fetch(vulnEndpoint, {
@@ -273,6 +288,18 @@ export default function Home() {
             title: vuln.title,
           });
         }
+      } else if (detectedFileType === "net" && data.vulnerabilities) {
+        // Rust vulnerability format
+        for (const vuln of data.vulnerabilities) {
+          const pkgName = vuln.packageName;
+          if (!vulnsMap.has(pkgName)) {
+            vulnsMap.set(pkgName, []);
+          }
+          vulnsMap.get(pkgName)!.push({
+            severity: vuln.severity,
+            title: vuln.title,
+          });
+        }
       }
 
       const updatedResults = results.map((dep) => ({
@@ -306,6 +333,8 @@ export default function Home() {
         return "Vulnerabilities Not Available";
       case "rust":
         return "Scan Rust Vulnerabilities";
+      case "net":
+        return "Scan .NET Vulnerabilities";
       default:
         return "Scan Vulnerabilities";
     }
@@ -431,7 +460,7 @@ export default function Home() {
               <input
                 id="file-upload"
                 type="file"
-                accept=".json,.txt,.toml,.mod"
+                accept=".json,.txt,.toml,.mod,.csproj"
                 onChange={handleFileUpload}
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                 disabled={isLoading || vulnerabilityLoading || authLoading}

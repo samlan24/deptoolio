@@ -68,7 +68,7 @@ async function findDependencyFiles(owner: string, repo: string, token: string) {
 }
 
 // Add this function before your GET handler:
-function getFileType(filename: string): "npm" | "python" | "go" | "php" | "rust" | "unknown" {
+function getFileType(filename: string): "npm" | "python" | "go" | "php" | "rust" | "net" | "unknown" {
   const lowercaseName = filename.toLowerCase();
 
   if (lowercaseName.includes("package.json")) {
@@ -92,6 +92,9 @@ function getFileType(filename: string): "npm" | "python" | "go" | "php" | "rust"
   }
   if (lowercaseName.includes("Cargo.toml")) {
     return "rust";
+  }
+  if (lowercaseName.endsWith(".csproj")) {
+    return "net";
   }
 
 
