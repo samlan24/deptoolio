@@ -16,7 +16,8 @@ import {
   SelectContent,
   SelectItem,
 } from "../components/ui/select";
-
+import { AsyncPaginate } from "react-select-async-paginate";
+import type { GroupBase } from "react-select";
 interface Repo {
   id: number;
   name: string;
@@ -77,6 +78,32 @@ export default function RepoScanner() {
   const perPage = 10; // or any number you want
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+
+  const loadRepoOptions = async (
+    search: string,
+    loadedOptions: import("react-select").OptionsOrGroups<Repo, GroupBase<Repo>>,
+    additional?: { page: number }
+  ): Promise<{
+    options: Repo[];
+    hasMore: boolean;
+    additional: { page: number };
+  }> => {
+    const perPage = 10;
+    const page = additional?.page ?? 1;
+
+    const response = await fetch(
+      `/api/github/repos?page=${page}&per_page=${perPage}`
+    );
+    if (!response.ok) throw new Error("Failed to fetch repositories");
+
+    const data = await response.json();
+
+    return {
+      options: data.repos || [],
+      hasMore: data.repos.length === perPage,
+      additional: { page: page + 1 },
+    };
+  };
 
   const fetchRepos = async (pageNumber = 1) => {
     setLoading(pageNumber === 1);
@@ -775,38 +802,23 @@ export default function RepoScanner() {
                 <label className="block text-sm font-medium text-gray-800 mb-2">
                   Select Repository
                 </label>
-                <Select
-                  value={selectedRepo?.id ? String(selectedRepo.id) : ""}
-                  onValueChange={(value) => {
-                    const repo = repos.find((r) => r.id === parseInt(value));
-                    setSelectedRepo(repo || null);
+                <AsyncPaginate
+                  value={selectedRepo}
+                  loadOptions={loadRepoOptions}
+                  getOptionLabel={(repo) => repo.name}
+                  getOptionValue={(repo) => String(repo.id)}
+                  additional={{ page: 1 }}
+                  onChange={(repo) => {
+                    setSelectedRepo(repo);
                     setFileType("javascript");
                     setPackageJsonFiles([]);
                     setSelectedFile(null);
                     setResults([]);
                   }}
-                >
-                  <SelectTrigger className="w-full bg-gray-700 text-white border border-gray-600 rounded-lg">
-                    <SelectValue placeholder="Choose a repository..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {repos.map((repo) => (
-                      <SelectItem key={repo.id} value={String(repo.id)}>
-                        {repo.name} {repo.private ? "(Private)" : "(Public)"}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  placeholder="Choose a repository"
+                  className="w-full"
+                />
               </div>
-              {hasMore && (
-                <button
-                  onClick={() => fetchRepos(page + 1)}
-                  disabled={loadingMore}
-                  className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
-                >
-                  {loadingMore ? "Loading more..." : "Load More Repositories"}
-                </button>
-              )}
 
               {selectedRepo && (
                 <div className="space-y-3">
