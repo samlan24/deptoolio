@@ -61,16 +61,22 @@ function satisfiesConstraint(version: string, constraint: string): boolean {
   // This is a simplified version check
   // In production, you might want to use a proper semver library for PHP
   const cleanVersion = version.replace(/^v/, "");
-  const cleanConstraint = constraint.replace(/^[\^~>=<]+/, "").replace(/^v/, "");
+  const cleanConstraint = constraint
+    .replace(/^[\^~>=<]+/, "")
+    .replace(/^v/, "");
 
   // For now, do a simple string comparison
   // This would need to be more sophisticated for production use
   try {
-    const versionParts = cleanVersion.split('.').map(Number);
-    const constraintParts = cleanConstraint.split('.').map(Number);
+    const versionParts = cleanVersion.split(".").map(Number);
+    const constraintParts = cleanConstraint.split(".").map(Number);
 
     // Simple major.minor.patch comparison
-    for (let i = 0; i < Math.max(versionParts.length, constraintParts.length); i++) {
+    for (
+      let i = 0;
+      i < Math.max(versionParts.length, constraintParts.length);
+      i++
+    ) {
       const vPart = versionParts[i] || 0;
       const cPart = constraintParts[i] || 0;
 
@@ -128,24 +134,27 @@ async function fetchWithRetry(url: string, retries = 2): Promise<Response> {
 }
 
 // Helper function to check if a package version is affected by an advisory
-function isVersionAffected(currentVersion: string, affectedVersions: string): boolean {
+function isVersionAffected(
+  currentVersion: string,
+  affectedVersions: string
+): boolean {
   try {
     // This is a simplified implementation
     // In production, you'd want to use a proper PHP version constraint parser
 
     // Handle common patterns like ">=1.0,<2.0" or "^1.0"
-    if (affectedVersions.includes(',')) {
+    if (affectedVersions.includes(",")) {
       // Multiple constraints (e.g., ">=1.0,<2.0")
-      const constraints = affectedVersions.split(',');
-      return constraints.every(constraint => {
+      const constraints = affectedVersions.split(",");
+      return constraints.every((constraint) => {
         const trimmed = constraint.trim();
-        if (trimmed.startsWith('>=')) {
-          const version = trimmed.replace('>=', '').trim();
-          return satisfiesConstraint(currentVersion, '>=' + version);
+        if (trimmed.startsWith(">=")) {
+          const version = trimmed.replace(">=", "").trim();
+          return satisfiesConstraint(currentVersion, ">=" + version);
         }
-        if (trimmed.startsWith('<')) {
-          const version = trimmed.replace('<', '').trim();
-          return !satisfiesConstraint(currentVersion, '>=' + version);
+        if (trimmed.startsWith("<")) {
+          const version = trimmed.replace("<", "").trim();
+          return !satisfiesConstraint(currentVersion, ">=" + version);
         }
         return satisfiesConstraint(currentVersion, trimmed);
       });
@@ -165,7 +174,10 @@ export async function POST(request: NextRequest) {
     const { dependencies } = await request.json();
 
     if (!dependencies || typeof dependencies !== "object") {
-      return NextResponse.json({ error: "Dependencies required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Dependencies required" },
+        { status: 400 }
+      );
     }
 
     // Filter out platform packages and invalid dependencies
@@ -182,7 +194,10 @@ export async function POST(request: NextRequest) {
     );
 
     if (Object.keys(validDependencies).length === 0) {
-      return NextResponse.json({ error: "No valid dependencies found" }, { status: 400 });
+      return NextResponse.json(
+        { error: "No valid dependencies found" },
+        { status: 400 }
+      );
     }
 
     const entries = Object.entries(validDependencies);
@@ -197,7 +212,9 @@ export async function POST(request: NextRequest) {
 
           // Try the Packagist security advisory API first
           const response = await fetchWithRetry(
-            `https://packagist.org/api/security-advisories/${encodeURIComponent(packageName)}.json`
+            `https://packagist.org/api/security-advisories/${encodeURIComponent(
+              packageName
+            )}.json`
           );
 
           if (response.status === 404) {
@@ -211,7 +228,9 @@ export async function POST(request: NextRequest) {
           }
 
           if (!response.ok) {
-            console.log(`Failed to fetch advisories for ${packageName}: ${response.status}`);
+            console.log(
+              `Failed to fetch advisories for ${packageName}: ${response.status}`
+            );
             return {
               packageName,
               currentVersion: version as string,
@@ -227,11 +246,16 @@ export async function POST(request: NextRequest) {
 
           if (Array.isArray(advisoryData)) {
             advisories = advisoryData;
-          } else if (advisoryData.advisories && Array.isArray(advisoryData.advisories)) {
+          } else if (
+            advisoryData.advisories &&
+            Array.isArray(advisoryData.advisories)
+          ) {
             advisories = advisoryData.advisories;
-          } else if (typeof advisoryData === 'object') {
+          } else if (typeof advisoryData === "object") {
             // Sometimes the response is an object with the package name as key
-            const packageKey = Object.keys(advisoryData).find(key => key === packageName);
+            const packageKey = Object.keys(advisoryData).find(
+              (key) => key === packageName
+            );
             if (packageKey && Array.isArray(advisoryData[packageKey])) {
               advisories = advisoryData[packageKey];
             }
@@ -244,28 +268,45 @@ export async function POST(request: NextRequest) {
               return isVersionAffected(cleanVersion, advisory.affectedVersions);
             })
             .map((advisory: any) => ({
-              advisoryId: advisory.advisoryId || advisory.id || `ADV-${Date.now()}`,
+              advisoryId:
+                advisory.advisoryId || advisory.id || `ADV-${Date.now()}`,
               packageName: packageName,
               title: advisory.title || "Security Advisory",
               cve: advisory.cve || undefined,
               affectedVersions: advisory.affectedVersions || "",
               source: advisory.source || "Packagist",
-              reportedAt: advisory.reportedAt || advisory.publishedAt || new Date().toISOString(),
+              reportedAt:
+                advisory.reportedAt ||
+                advisory.publishedAt ||
+                new Date().toISOString(),
               severity: advisory.severity,
-              reference: advisory.reference || advisory.link || `https://packagist.org/packages/${packageName}`,
+              reference:
+                advisory.reference ||
+                advisory.link ||
+                `https://packagist.org/packages/${packageName}`,
             }));
 
-          const highestSeverity = relevantVulnerabilities.length > 0
-            ? relevantVulnerabilities.reduce((highest, vuln) => {
-                const currentLevel = getSeverityLevel(vuln.severity);
-                const highestLevel = getSeverityLevel(highest);
+          const highestSeverity =
+            relevantVulnerabilities.length > 0
+              ? relevantVulnerabilities.reduce((highest, vuln) => {
+                  const currentLevel = getSeverityLevel(vuln.severity);
+                  const highestLevel = getSeverityLevel(highest);
 
-                const severityOrder = { critical: 4, high: 3, moderate: 2, low: 1, info: 0 };
+                  const severityOrder = {
+                    critical: 4,
+                    high: 3,
+                    moderate: 2,
+                    low: 1,
+                    info: 0,
+                  };
 
-                return severityOrder[currentLevel as keyof typeof severityOrder] >
-                       severityOrder[highestLevel as keyof typeof severityOrder] ? currentLevel : highest;
-              }, "info")
-            : undefined;
+                  return severityOrder[
+                    currentLevel as keyof typeof severityOrder
+                  ] > severityOrder[highestLevel as keyof typeof severityOrder]
+                    ? currentLevel
+                    : highest;
+                }, "info")
+              : undefined;
 
           return {
             packageName,
@@ -275,7 +316,10 @@ export async function POST(request: NextRequest) {
             highestSeverity,
           };
         } catch (error) {
-          console.error(`Error checking vulnerabilities for ${packageName}:`, error);
+          console.error(
+            `Error checking vulnerabilities for ${packageName}:`,
+            error
+          );
           return {
             packageName,
             currentVersion: version as string,
@@ -288,24 +332,37 @@ export async function POST(request: NextRequest) {
     );
 
     // Calculate summary statistics
+    // Filter out packages with no vulnerabilities to match Python behavior
+    const vulnerableResults = results.filter((r) => r.isVulnerable);
+
+    // Calculate summary statistics
     const summary = {
       total: results.length,
-      vulnerable: results.filter(r => r.isVulnerable).length,
-      critical: results.filter(r => r.highestSeverity === "critical").length,
-      high: results.filter(r => r.highestSeverity === "high").length,
-      moderate: results.filter(r => r.highestSeverity === "moderate").length,
-      low: results.filter(r => r.highestSeverity === "low").length,
-      info: results.filter(r => r.highestSeverity === "info").length,
+      vulnerable: vulnerableResults.length,
+      critical: vulnerableResults.filter(
+        (r) => r.highestSeverity === "critical"
+      ).length,
+      high: vulnerableResults.filter((r) => r.highestSeverity === "high")
+        .length,
+      moderate: vulnerableResults.filter(
+        (r) => r.highestSeverity === "moderate"
+      ).length,
+      low: vulnerableResults.filter((r) => r.highestSeverity === "low").length,
+      info: vulnerableResults.filter((r) => r.highestSeverity === "info")
+        .length,
     };
 
     const report: VulnerabilityReport = {
       summary,
-      vulnerabilities: results,
+      vulnerabilities: vulnerableResults, // Only return vulnerable packages
     };
 
     return NextResponse.json(report);
   } catch (error) {
     console.error("Error in PHP vulnerability scan:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
 }

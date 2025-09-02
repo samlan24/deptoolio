@@ -96,7 +96,8 @@ function getSeverityLevel(vuln: OSVVulnerability): string {
     const dbSeverity = vuln.database_specific.severity.toLowerCase();
     if (dbSeverity.includes("critical")) return "critical";
     if (dbSeverity.includes("high")) return "high";
-    if (dbSeverity.includes("medium") || dbSeverity.includes("moderate")) return "moderate";
+    if (dbSeverity.includes("medium") || dbSeverity.includes("moderate"))
+      return "moderate";
     if (dbSeverity.includes("low")) return "low";
   }
 
@@ -115,13 +116,25 @@ function getSeverityLevel(vuln: OSVVulnerability): string {
 
   // Fallback based on summary keywords
   const summary = vuln.summary?.toLowerCase() || "";
-  if (summary.includes("critical") || summary.includes("rce") || summary.includes("code execution")) {
+  if (
+    summary.includes("critical") ||
+    summary.includes("rce") ||
+    summary.includes("code execution")
+  ) {
     return "critical";
   }
-  if (summary.includes("high") || summary.includes("privilege") || summary.includes("bypass")) {
+  if (
+    summary.includes("high") ||
+    summary.includes("privilege") ||
+    summary.includes("bypass")
+  ) {
     return "high";
   }
-  if (summary.includes("medium") || summary.includes("moderate") || summary.includes("disclosure")) {
+  if (
+    summary.includes("medium") ||
+    summary.includes("moderate") ||
+    summary.includes("disclosure")
+  ) {
     return "moderate";
   }
 
@@ -129,7 +142,10 @@ function getSeverityLevel(vuln: OSVVulnerability): string {
 }
 
 // Helper function to check if version is affected by vulnerability
-function isVersionAffected(currentVersion: string, affected: OSVVulnerability["affected"]): boolean {
+function isVersionAffected(
+  currentVersion: string,
+  affected: OSVVulnerability["affected"]
+): boolean {
   if (!affected || affected.length === 0) return false;
 
   const cleanVersion = parseVersionConstraint(currentVersion);
@@ -151,8 +167,10 @@ function isVersionAffected(currentVersion: string, affected: OSVVulnerability["a
             // Simplified version range checking
             // In production, you'd want to use a proper semver library
             if (event.introduced && event.fixed) {
-              if (compareVersions(cleanVersion, event.introduced) >= 0 &&
-                  compareVersions(cleanVersion, event.fixed) < 0) {
+              if (
+                compareVersions(cleanVersion, event.introduced) >= 0 &&
+                compareVersions(cleanVersion, event.fixed) < 0
+              ) {
                 return true;
               }
             } else if (event.introduced && !event.fixed) {
@@ -175,8 +193,8 @@ function isVersionAffected(currentVersion: string, affected: OSVVulnerability["a
 
 // Helper function to compare versions (simplified)
 function compareVersions(version1: string, version2: string): number {
-  const v1 = version1.split('.').map(Number);
-  const v2 = version2.split('.').map(Number);
+  const v1 = version1.split(".").map(Number);
+  const v2 = version2.split(".").map(Number);
 
   const maxLength = Math.max(v1.length, v2.length);
 
@@ -193,7 +211,11 @@ function compareVersions(version1: string, version2: string): number {
 }
 
 // Helper function to fetch with retry logic
-async function fetchWithRetry(url: string, options: RequestInit, retries = 2): Promise<Response> {
+async function fetchWithRetry(
+  url: string,
+  options: RequestInit,
+  retries = 2
+): Promise<Response> {
   for (let i = 0; i <= retries; i++) {
     try {
       const controller = new AbortController();
@@ -220,11 +242,13 @@ async function fetchWithRetry(url: string, options: RequestInit, retries = 2): P
 // Helper function to get CVE from aliases
 function getCVE(aliases?: string[]): string | undefined {
   if (!aliases) return undefined;
-  return aliases.find(alias => alias.startsWith("CVE-"));
+  return aliases.find((alias) => alias.startsWith("CVE-"));
 }
 
 // Helper function to format affected versions
-function formatAffectedVersions(affected?: OSVVulnerability["affected"]): string {
+function formatAffectedVersions(
+  affected?: OSVVulnerability["affected"]
+): string {
   if (!affected || affected.length === 0) return "Unknown";
 
   const ranges: string[] = [];
@@ -259,11 +283,17 @@ export async function POST(request: NextRequest) {
     const { dependencies } = await request.json();
 
     if (!dependencies || typeof dependencies !== "object") {
-      return NextResponse.json({ error: "Dependencies required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Dependencies required" },
+        { status: 400 }
+      );
     }
 
     if (Object.keys(dependencies).length === 0) {
-      return NextResponse.json({ error: "No dependencies found" }, { status: 400 });
+      return NextResponse.json(
+        { error: "No dependencies found" },
+        { status: 400 }
+      );
     }
 
     const entries = Object.entries(dependencies);
@@ -280,8 +310,8 @@ export async function POST(request: NextRequest) {
           const osvQuery: OSVQueryRequest = {
             package: {
               name: packageName,
-              ecosystem: "crates.io"
-            }
+              ecosystem: "crates.io",
+            },
           };
 
           const response = await fetchWithRetry(
@@ -290,14 +320,16 @@ export async function POST(request: NextRequest) {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
-                "User-Agent": "rust-vulnerability-scanner/1.0"
+                "User-Agent": "rust-vulnerability-scanner/1.0",
               },
-              body: JSON.stringify(osvQuery)
+              body: JSON.stringify(osvQuery),
             }
           );
 
           if (!response.ok) {
-            console.log(`Failed to query OSV for ${packageName}: ${response.status}`);
+            console.log(
+              `Failed to query OSV for ${packageName}: ${response.status}`
+            );
             return {
               packageName,
               currentVersion: version as string,
@@ -331,20 +363,32 @@ export async function POST(request: NextRequest) {
               source: "OSV/RustSec",
               reportedAt: vuln.published || new Date().toISOString(),
               severity: getSeverityLevel(vuln),
-              reference: vuln.references?.[0]?.url || `https://osv.dev/vulnerability/${vuln.id}`,
+              reference:
+                vuln.references?.[0]?.url ||
+                `https://osv.dev/vulnerability/${vuln.id}`,
             }));
 
-          const highestSeverity = relevantVulnerabilities.length > 0
-            ? relevantVulnerabilities.reduce((highest, vuln) => {
-                const currentLevel = vuln.severity || "info";
-                const highestLevel = highest;
+          const highestSeverity =
+            relevantVulnerabilities.length > 0
+              ? relevantVulnerabilities.reduce((highest, vuln) => {
+                  const currentLevel = vuln.severity || "info";
+                  const highestLevel = highest;
 
-                const severityOrder = { critical: 4, high: 3, moderate: 2, low: 1, info: 0 };
+                  const severityOrder = {
+                    critical: 4,
+                    high: 3,
+                    moderate: 2,
+                    low: 1,
+                    info: 0,
+                  };
 
-                return severityOrder[currentLevel as keyof typeof severityOrder] >
-                       severityOrder[highestLevel as keyof typeof severityOrder] ? currentLevel : highest;
-              }, "info")
-            : undefined;
+                  return severityOrder[
+                    currentLevel as keyof typeof severityOrder
+                  ] > severityOrder[highestLevel as keyof typeof severityOrder]
+                    ? currentLevel
+                    : highest;
+                }, "info")
+              : undefined;
 
           return {
             packageName,
@@ -354,7 +398,10 @@ export async function POST(request: NextRequest) {
             highestSeverity,
           };
         } catch (error) {
-          console.error(`Error checking vulnerabilities for ${packageName}:`, error);
+          console.error(
+            `Error checking vulnerabilities for ${packageName}:`,
+            error
+          );
           return {
             packageName,
             currentVersion: version as string,
@@ -366,25 +413,29 @@ export async function POST(request: NextRequest) {
       { concurrency }
     );
 
+    const vulnerableResults = results.filter((r) => r.isVulnerable);
     // Calculate summary statistics
     const summary = {
       total: results.length,
-      vulnerable: results.filter(r => r.isVulnerable).length,
-      critical: results.filter(r => r.highestSeverity === "critical").length,
-      high: results.filter(r => r.highestSeverity === "high").length,
-      moderate: results.filter(r => r.highestSeverity === "moderate").length,
-      low: results.filter(r => r.highestSeverity === "low").length,
-      info: results.filter(r => r.highestSeverity === "info").length,
+      vulnerable: results.filter((r) => r.isVulnerable).length,
+      critical: results.filter((r) => r.highestSeverity === "critical").length,
+      high: results.filter((r) => r.highestSeverity === "high").length,
+      moderate: results.filter((r) => r.highestSeverity === "moderate").length,
+      low: results.filter((r) => r.highestSeverity === "low").length,
+      info: results.filter((r) => r.highestSeverity === "info").length,
     };
 
     const report: VulnerabilityReport = {
       summary,
-      vulnerabilities: results,
+      vulnerabilities: vulnerableResults,
     };
 
     return NextResponse.json(report);
   } catch (error) {
     console.error("Error in Rust vulnerability scan:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
 }
