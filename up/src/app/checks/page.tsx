@@ -454,7 +454,7 @@ export default function Home() {
                 </span>
                 <p className="text-sm text-gray-500 mt-2">
                   Supports: package.json, requirements.txt, Pipfile,
-                  pyproject.toml
+                  pyproject.toml, go.mod, composer.json, cargo.toml, .csproj
                 </p>
               </div>
               <input
