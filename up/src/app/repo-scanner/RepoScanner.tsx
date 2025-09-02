@@ -73,21 +73,36 @@ export default function RepoScanner() {
   const [fileType, setFileType] = useState<
     "javascript" | "python" | "go" | "php" | "rust" | "net"
   >("javascript");
+  const [page, setPage] = useState(1);
+  const perPage = 10; // or any number you want
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
 
-  const fetchRepos = async () => {
-    setLoading(true);
+  const fetchRepos = async (pageNumber = 1) => {
+    setLoading(pageNumber === 1);
+    setLoadingMore(pageNumber > 1);
     setError("");
+
     try {
-      const response = await fetch("/api/github/repos");
+      const response = await fetch(
+        `/api/github/repos?page=${pageNumber}&per_page=${perPage}`
+      );
       if (!response.ok) throw new Error("Failed to fetch repositories");
       const data = await response.json();
-      setRepos(data);
+      if (pageNumber === 1) {
+        setRepos(data.repos); // assuming API returns { repos: [] }
+      } else {
+        setRepos((prev) => [...prev, ...data.repos]);
+      }
+      setHasMore(data.repos.length === perPage);
+      setPage(pageNumber);
     } catch (err) {
       setError(
         "Failed to load repositories. Make sure you signed in with GitHub."
       );
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   };
 
@@ -740,7 +755,7 @@ export default function RepoScanner() {
           {!repos.length ? (
             <div className="text-center">
               <button
-                onClick={fetchRepos}
+                onClick={() => fetchRepos()}
                 disabled={loading}
                 className="px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -783,6 +798,15 @@ export default function RepoScanner() {
                   </SelectContent>
                 </Select>
               </div>
+              {hasMore && (
+                <button
+                  onClick={() => fetchRepos(page + 1)}
+                  disabled={loadingMore}
+                  className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {loadingMore ? "Loading more..." : "Load More Repositories"}
+                </button>
+              )}
 
               {selectedRepo && (
                 <div className="space-y-3">
