@@ -125,7 +125,7 @@ const PricingSection = ({ id }: PricingSectionProps ) => {
 
           <div className="text-center mt-12">
             <p className="text-muted-foreground">
-              All plans include our core dependency scanning engine and support for 6+ languages.
+              All plans include our core dependency scanning engine and support for 4+ languages.
               <br />
               <span className="text-sm">Need custom enterprise features? <span className="text-primary cursor-pointer hover:underline">Contact us</span></span>
             </p>
