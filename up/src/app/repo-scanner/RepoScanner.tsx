@@ -784,11 +784,11 @@ export default function RepoScanner() {
               <button
                 onClick={() => fetchRepos()}
                 disabled={loading}
-                className="px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-6 py-3 bg-black text-black rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? (
                   <div className="flex items-center space-x-2 justify-center">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-800"></div>
                     <span>Loading Repositories...</span>
                   </div>
                 ) : (
