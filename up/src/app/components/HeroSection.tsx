@@ -10,7 +10,8 @@ import {
   GoOriginal,
   PhpOriginal,
   NodejsOriginal,
-  RustOriginal
+  RustOriginal,
+  COriginal,
 
 } from "devicons-react";
 
@@ -98,6 +99,7 @@ const HeroSection = () => {
               <RustOriginal size={30} />
               <PhpOriginal size={30} />
               <NodejsOriginal size={30} />
+              <COriginal size={30} />
             </div>
           </div>
         </div>
