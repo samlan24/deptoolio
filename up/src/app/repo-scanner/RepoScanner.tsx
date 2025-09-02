@@ -1038,11 +1038,8 @@ export default function RepoScanner() {
                                 <ul className="text-xs text-red-500 list-disc list-inside">
                                   {dep.vulnerabilities.map((vuln, i) => (
                                     <li key={i} title={vuln.title}>
-                                      [
-                                      {(
-                                        vuln.severity || "unknown"
-                                      ).toUpperCase()}
-                                      ] {vuln.title}
+                                      [{vuln.severity.toUpperCase()}]{" "}
+                                      {vuln.title}
                                     </li>
                                   ))}
                                 </ul>
