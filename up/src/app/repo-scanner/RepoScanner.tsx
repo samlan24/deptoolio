@@ -816,7 +816,7 @@ export default function RepoScanner() {
                     setResults([]);
                   }}
                   placeholder="Choose a repository"
-                  className="w-full text-black border border-gray-300 rounded-lg"
+                  className="w-full bg-gray-700 text-white border border-gray-600 rounded-lg"
                 />
               </div>
 
