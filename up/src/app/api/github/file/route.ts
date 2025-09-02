@@ -34,6 +34,8 @@ async function findDependencyFiles(owner: string, repo: string, token: string) {
     `filename:pyproject.toml repo:${owner}/${repo}`,
     `filename:pom.xml repo:${owner}/${repo}`,
     `filename:build.gradle repo:${owner}/${repo}`,
+    `filename:composer.json repo:${owner}/${repo}`,
+    `filename:go.mod repo:${owner}/${repo}`,
   ];
 
   const allFiles = [];
@@ -66,7 +68,7 @@ async function findDependencyFiles(owner: string, repo: string, token: string) {
 }
 
 // Add this function before your GET handler:
-function getFileType(filename: string): "npm" | "python" | "java" | "unknown" {
+function getFileType(filename: string): "npm" | "python" | "java" | "go" | "php" | "rust" | "unknown" {
   const lowercaseName = filename.toLowerCase();
 
   if (lowercaseName.includes("package.json")) {
@@ -86,6 +88,17 @@ function getFileType(filename: string): "npm" | "python" | "java" | "unknown" {
   ) {
     return "java";
   }
+  if (lowercaseName.includes("composer.json")) {
+    return "php";
+  }
+
+  if (lowercaseName.includes("go.mod")) {
+    return "go";
+  }
+  if (lowercaseName.includes("Cargo.toml")) {
+    return "rust";
+  }
+
 
   return "unknown";
 }

@@ -27,8 +27,8 @@ interface DependencyStatus {
   license?: string | null;
 }
 
-// Update your FileType to include Java
-type FileType = "npm" | "python" | "java" | "unknown";
+// Update your FileType to include Rust
+type FileType = "npm" | "python" | "java" | "go" | "php" | "rust" | "unknown";
 
 export default function Home() {
   const [results, setResults] = useState<DependencyStatus[]>([]);
@@ -62,6 +62,17 @@ export default function Home() {
     ) {
       return "java";
     }
+    if (lowercaseName.includes("composer.json")) {
+      return "php";
+    }
+
+    if (lowercaseName.includes("go.mod")) {
+      return "go";
+    }
+
+    if (lowercaseName.includes("cargo.toml")) {
+      return "rust";
+    }
 
     return "unknown";
   };
@@ -75,6 +86,12 @@ export default function Home() {
         return "/api/check-python";
       case "java":
         return "/api/check-java";
+      case "go":
+        return "/api/check-go";
+      case "php":
+        return "/api/check-php";
+      case "rust":
+        return "/api/check-rust";
       default:
         return "";
     }
@@ -104,6 +121,29 @@ export default function Home() {
           color: "text-orange-600",
           bgColor: "bg-orange-50",
         };
+
+      case "php":
+        return {
+          icon: <Package className="w-5 h-5 text-indigo-600" />,
+          label: "PHP/Composer",
+          color: "text-indigo-600",
+          bgColor: "bg-indigo-50",
+        };
+      case "go":
+        return {
+          icon: <Package className="w-5 h-5 text-cyan-600" />,
+          label: "Go/Modules",
+          color: "text-cyan-600",
+          bgColor: "bg-cyan-50",
+        };
+      case "rust":
+        return {
+          icon: <Package className="w-5 h-5 text-orange-700" />,
+          label: "Rust/Modules",
+          color: "text-orange-700",
+          bgColor: "bg-orange-50",
+        };
+
       default:
         return {
           icon: <FileText className="w-5 h-5 text-gray-600" />,
@@ -181,6 +221,10 @@ export default function Home() {
           ? "/api/check-py-vulnerabilities"
           : detectedFileType === "java"
           ? "/api/check-java-vulnerabilities"
+          : detectedFileType === "php"
+          ? "/api/check-php-vulnerabilities"
+          : detectedFileType === "rust"
+          ? "/api/check-rust-vulnerabilities"
           : "/api/check-js-vulnerabilities";
 
       const response = await fetch(vulnEndpoint, {
@@ -234,6 +278,30 @@ export default function Home() {
             title: vuln.title,
           });
         }
+      } else if (detectedFileType === "php" && data.vulnerabilities) {
+        // PHP vulnerability format
+        for (const vuln of data.vulnerabilities) {
+          const pkgName = vuln.packageName;
+          if (!vulnsMap.has(pkgName)) {
+            vulnsMap.set(pkgName, []);
+          }
+          vulnsMap.get(pkgName)!.push({
+            severity: vuln.severity,
+            title: vuln.title,
+          });
+        }
+      } else if (detectedFileType === "rust" && data.vulnerabilities) {
+        // Rust vulnerability format
+        for (const vuln of data.vulnerabilities) {
+          const pkgName = vuln.packageName;
+          if (!vulnsMap.has(pkgName)) {
+            vulnsMap.set(pkgName, []);
+          }
+          vulnsMap.get(pkgName)!.push({
+            severity: vuln.severity,
+            title: vuln.title,
+          });
+        }
       }
 
       const updatedResults = results.map((dep) => ({
@@ -262,6 +330,12 @@ export default function Home() {
         return "Scan JavaScript Vulnerabilities";
       case "java":
         return "Scan Java Vulnerabilities";
+      case "php":
+        return "Scan PHP Vulnerabilities";
+      case "go":
+        return "Vulnerabilities Not Available";
+      case "rust":
+        return "Scan Rust Vulnerabilities";
       default:
         return "Scan Vulnerabilities";
     }
@@ -387,7 +461,7 @@ export default function Home() {
               <input
                 id="file-upload"
                 type="file"
-                accept=".json,.txt,.toml,.xml"
+                accept=".json,.txt,.toml,.xml,.mod"
                 onChange={handleFileUpload}
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                 disabled={isLoading || vulnerabilityLoading || authLoading}
@@ -471,11 +545,20 @@ export default function Home() {
 
         {results.length > 0 && (
           <>
-            <div className="mt-4 text-right ">
+            <div className="mt-4 text-right">
               <button
                 onClick={handleVulnerabilityScan}
-                disabled={vulnerabilityLoading}
-                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:bg-red-300"
+                disabled={vulnerabilityLoading || detectedFileType === "go"}
+                title={
+                  detectedFileType === "go"
+                    ? "Go vulnerability scanning is not currently supported"
+                    : ""
+                }
+                className={`px-4 py-2 text-white rounded transition-colors ${
+                  detectedFileType === "go"
+                    ? "bg-gray-400 cursor-not-allowed opacity-60"
+                    : "bg-red-600 hover:bg-red-700 disabled:bg-red-300"
+                }`}
               >
                 {getVulnerabilityScanText()}
               </button>

@@ -52,7 +52,7 @@ interface DependencyStatus {
   license?: string | null;
 }
 
-type FileType = "npm" | "python" | "java" | "unknown";
+type FileType = "npm" | "python" | "java" | "go" | "php" | "rust" | "unknown";
 
 export default function RepoScanner() {
   const [repos, setRepos] = useState<Repo[]>([]);
@@ -70,7 +70,7 @@ export default function RepoScanner() {
   const [detectedFileType, setDetectedFileType] = useState<FileType>("unknown");
   const [vulnerabilityLoading, setVulnerabilityLoading] = useState(false);
   const [error, setError] = useState("");
-  const [fileType, setFileType] = useState<"javascript" | "python" | "java">(
+  const [fileType, setFileType] = useState<"javascript" | "python" | "java" | "go" | "php" | "rust">(
     "javascript"
   );
 
@@ -120,7 +120,10 @@ export default function RepoScanner() {
             file.name.toLowerCase().includes("pipfile") ||
             file.name.toLowerCase().includes("pyproject.toml") ||
             file.name.toLowerCase().includes("pom.xml") ||
-            file.name.toLowerCase().includes("build.gradle")
+            file.name.toLowerCase().includes("build.gradle") ||
+            file.name.toLowerCase().includes("go.mod") ||
+            file.name.toLowerCase().includes("composer.json") ||
+            file.name.toLowerCase().includes("cargo.toml")
           );
         }
       });
@@ -230,6 +233,10 @@ export default function RepoScanner() {
           ? "/api/check-py-vulnerabilities"
           : detectedFileType === "java"
           ? "/api/check-java-vulnerabilities"
+          : detectedFileType === "php"
+          ? "/api/check-php-vulnerabilities"
+          : detectedFileType === "rust"
+          ? "/api/check-rust-vulnerabilities"
           : "/api/check-js-vulnerabilities";
 
       const response = await fetch(vulnEndpoint, {
@@ -283,6 +290,30 @@ export default function RepoScanner() {
             title: vuln.title,
           });
         });
+      } else if (detectedFileType === "php" && data.vulnerabilities) {
+        // PHP vulnerability format
+        data.vulnerabilities.forEach((vuln: any) => {
+          const pkgName = vuln.packageName;
+          if (!vulnsMap.has(pkgName)) {
+            vulnsMap.set(pkgName, []);
+          }
+          vulnsMap.get(pkgName)!.push({
+            severity: vuln.severity,
+            title: vuln.title,
+          });
+        });
+      } else if (detectedFileType === "rust" && data.vulnerabilities) {
+        // Rust vulnerability format
+        data.vulnerabilities.forEach((vuln: any) => {
+          const pkgName = vuln.packageName;
+          if (!vulnsMap.has(pkgName)) {
+            vulnsMap.set(pkgName, []);
+          }
+          vulnsMap.get(pkgName)!.push({
+            severity: vuln.severity,
+            title: vuln.title,
+          });
+        });
       }
 
       const updatedResults = results.map((dep) => ({
@@ -311,6 +342,12 @@ export default function RepoScanner() {
         return "Scan JavaScript Vulnerabilities";
       case "java":
         return "Scan Java Vulnerabilities";
+      case "php":
+        return "Scan PHP Vulnerabilities";
+      case "go":
+        return "Vulnerabilities Not Available";
+      case "rust":
+        return "Scan Rust Vulnerabilities";
       default:
         return "Scan Vulnerabilities";
     }
@@ -456,7 +493,7 @@ export default function RepoScanner() {
       if (targetFile) {
         setSelectedFile(targetFile);
         // Set the file type to match the scan
-        setFileType(scan.file_type as "javascript" | "python");
+        setFileType(scan.file_type as "javascript" | "python" | "java" | "go" | "php" | "rust");
 
         // Auto-scan after setting file with a longer delay
         setTimeout(() => {
@@ -519,6 +556,17 @@ export default function RepoScanner() {
     ) {
       return "java";
     }
+    if (lowercaseName.includes("composer.json")) {
+      return "php";
+    }
+
+    if (lowercaseName.includes("go.mod")) {
+      return "go";
+    }
+
+    if (lowercaseName.includes("cargo.toml")) {
+      return "rust";
+    }
 
     return "unknown";
   };
@@ -532,6 +580,12 @@ export default function RepoScanner() {
         return "/api/check-python";
       case "java":
         return "/api/check-java";
+      case "go":
+        return "/api/check-go";
+      case "php":
+        return "/api/check-php";
+      case "rust":
+        return "/api/check-rust";
       default:
         return "";
     }
@@ -559,6 +613,27 @@ export default function RepoScanner() {
           icon: <Package className="w-5 h-5 text-orange-600" />,
           label: "Java/Maven",
           color: "text-orange-600",
+          bgColor: "bg-orange-50",
+        };
+      case "php":
+        return {
+          icon: <Package className="w-5 h-5 text-indigo-600" />,
+          label: "PHP/Composer",
+          color: "text-indigo-600",
+          bgColor: "bg-indigo-50",
+        };
+      case "go":
+        return {
+          icon: <Package className="w-5 h-5 text-cyan-600" />,
+          label: "Go/Modules",
+          color: "text-cyan-600",
+          bgColor: "bg-cyan-50",
+        };
+      case "rust":
+        return {
+          icon: <Package className="w-5 h-5 text-orange-700" />,
+          label: "Rust/Modules",
+          color: "text-orange-700",
           bgColor: "bg-orange-50",
         };
       default:
@@ -652,7 +727,7 @@ export default function RepoScanner() {
               <h2 className="text-2xl font-bold">GitHub Repository Scanner</h2>
             </div>
             <p className="text-gray-800">
-              Connect to your GitHub repositories and scan package.json files
+              Connect to your GitHub repositories and scan package files
             </p>
           </div>
 
