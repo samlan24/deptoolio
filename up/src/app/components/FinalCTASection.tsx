@@ -52,7 +52,7 @@ const FinalCTASection = () => {
               <div className="hidden sm:block">•</div>
               <div className="flex items-center gap-2">
                 <Rocket className="w-4 h-4 text-primary" />
-                <span>Works with all major languages</span>
+                <span>Works with major languages</span>
               </div>
               <div className="hidden sm:block">•</div>
               <div className="flex items-center gap-2">
