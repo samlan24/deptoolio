@@ -860,7 +860,7 @@ export default function RepoScanner() {
                         <SelectContent>
                           {packageJsonFiles.map((file) => (
                             <SelectItem key={file.path} value={file.path}>
-                              <div className="flex items-center space-x-2 pt-6">
+                              <div className="flex items-center space-x-2">
                                 {file.typeInfo.icon}
                                 <span>{file.typeInfo.label}</span>
                                 <span className="text-gray-400">•</span>
@@ -903,7 +903,7 @@ export default function RepoScanner() {
           {selectedFile && detectedFileType !== "unknown" && (
             <div className="mb-4 text-center">
               <div
-                className={`inline-flex items-center space-x-2 px-4 py-2 rounded-full ${
+                className={`inline-flex items-center space-x-2 px-4 py-2 mt-6 rounded-full ${
                   getFileTypeInfo(detectedFileType).bgColor
                 }`}
               >
