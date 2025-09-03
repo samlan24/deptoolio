@@ -81,7 +81,10 @@ export default function RepoScanner() {
 
   const loadRepoOptions = async (
     search: string,
-    loadedOptions: import("react-select").OptionsOrGroups<Repo, GroupBase<Repo>>,
+    loadedOptions: import("react-select").OptionsOrGroups<
+      Repo,
+      GroupBase<Repo>
+    >,
     additional?: { page: number }
   ): Promise<{
     options: Repo[];
@@ -469,6 +472,7 @@ export default function RepoScanner() {
     };
 
     try {
+      // Save to scan_history (deletable by user)
       await fetch("/api/scan-history", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -482,10 +486,13 @@ export default function RepoScanner() {
         }),
       });
 
-      // Refresh scan history after saving
+     console.log("About to increment scan count..."); // Add this
+    const incrementResponse = await fetch("/api/increment-scan-count", { method: "POST" });
+    console.log("Increment response:", await incrementResponse.json());
+
       fetchScanHistory();
     } catch (error) {
-      console.error("Failed to save scan history:", error);
+      console.error("Failed to save scan:", error);
     }
   };
 
