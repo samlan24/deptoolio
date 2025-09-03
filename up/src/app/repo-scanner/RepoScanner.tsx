@@ -486,9 +486,9 @@ export default function RepoScanner() {
         }),
       });
 
-     console.log("About to increment scan count..."); // Add this
+
     const incrementResponse = await fetch("/api/increment-scan-count", { method: "POST" });
-    console.log("Increment response:", await incrementResponse.json());
+
 
       fetchScanHistory();
     } catch (error) {
@@ -860,7 +860,7 @@ export default function RepoScanner() {
                         <SelectContent>
                           {packageJsonFiles.map((file) => (
                             <SelectItem key={file.path} value={file.path}>
-                              <div className="flex items-center space-x-2">
+                              <div className="flex items-center space-x-2 pt-6">
                                 {file.typeInfo.icon}
                                 <span>{file.typeInfo.label}</span>
                                 <span className="text-gray-400">•</span>
