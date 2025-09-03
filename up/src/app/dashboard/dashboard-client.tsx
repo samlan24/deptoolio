@@ -48,7 +48,7 @@ function PastScansTab() {
 
   const fetchDailyCounts = async () => {
     try {
-      const response = await fetch("/api/scan-counts");
+      const response = await fetch("/api/scan-counts"); // Remove the ?days=7 parameter
       const data = await response.json();
       setDailyCounts(data.dailyCounts || []);
     } catch (error) {
@@ -75,16 +75,31 @@ function PastScansTab() {
   }, []);
 
   const formatChartData = () => {
-    return dailyCounts
-      .map((item) => ({
-        date: new Date(item.scan_date).toLocaleDateString("en-US", {
+    // Create array for last 7 days
+    const last7Days = [];
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toISOString().split("T")[0];
+
+      const existingData = dailyCounts.find(
+        (item) => item.scan_date.split("T")[0] === dateStr
+      );
+
+      last7Days.push({
+        date: date.toLocaleDateString("en-US", {
           month: "short",
           day: "numeric",
         }),
-        scans: parseInt(item.scan_count.toString()),
-      }))
-      .reverse(); // Reverse to show chronological order
+        scans: existingData ? parseInt(existingData.scan_count.toString()) : 0,
+      });
+    }
+    return last7Days;
   };
+  const totalScans = dailyCounts.reduce(
+    (sum, item) => sum + parseInt(item.scan_count.toString()),
+    0
+  );
 
   if (loading) {
     return (
@@ -101,103 +116,41 @@ function PastScansTab() {
     <div>
       <h2 className="text-2xl font-bold mb-6 text-white">Past Scans</h2>
 
+      {/* Total Scans Summary */}
+      <div className="bg-gray-800 rounded-lg p-6 mb-6">
+        <h3 className="text-lg font-semibold text-white mb-2">
+          Total Scans (Last 7 Days)
+        </h3>
+        <p className="text-3xl font-bold text-blue-400">{totalScans}</p>
+      </div>
+
       {/* Daily Scan Chart */}
-      {dailyCounts.length > 0 && (
-        <div className="bg-gray-800 rounded-lg p-6 mb-6">
-          <h3 className="text-lg font-semibold text-white mb-4">
-            Daily Scan Activity (Last 30 Days)
-          </h3>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={formatChartData()}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                <XAxis dataKey="date" stroke="#9CA3AF" fontSize={12} />
-                <YAxis
-                  stroke="#9CA3AF"
-                  fontSize={12}
-                  allowDecimals={false}
-                  domain={[0, "dataMax"]} // Forces Y-axis to start at 0
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "#1F2937",
-                    border: "1px solid #374151",
-                    color: "#F9FAFB",
-                  }}
-                />
-                <Bar dataKey="scans" fill="#3B82F6" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      )}
-
-      {/* Scan History List */}
       <div className="bg-gray-800 rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-white mb-4">Recent Scans</h3>
-
-        {scanHistory.length === 0 ? (
-          <p className="text-gray-400">
-            No scans found. Start by scanning your first repository.
-          </p>
-        ) : (
-          <div className="space-y-3">
-            {scanHistory.map((scan) => (
-              <div
-                key={scan.id}
-                className="flex items-center justify-between p-4 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors"
-              >
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium text-white">
-                      {scan.repo_name}
-                    </span>
-                    <span className="px-2 py-1 text-xs bg-gray-600 text-gray-300 rounded">
-                      {scan.file_type}
-                    </span>
-                  </div>
-                  <p className="text-sm text-gray-400 mt-1">{scan.file_path}</p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    {new Date(scan.scanned_at).toLocaleString()}
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-4">
-                  <div className="text-right">
-                    <p className="text-sm text-gray-300">
-                      {scan.total_deps} dependencies
-                    </p>
-                    <div className="flex gap-2 text-xs mt-1">
-                      {scan.outdated_count > 0 && (
-                        <span className="text-yellow-400">
-                          {scan.outdated_count} outdated
-                        </span>
-                      )}
-                      {scan.major_count > 0 && (
-                        <span className="text-red-400">
-                          {scan.major_count} major
-                        </span>
-                      )}
-                      {scan.outdated_count === 0 && scan.major_count === 0 && (
-                        <span className="text-green-400">All up to date</span>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => deleteScan(scan.id)}
-                      className="p-2 text-gray-400 hover:text-red-400 hover:bg-gray-600 rounded"
-                      title="Delete scan"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+        <h3 className="text-lg font-semibold text-white mb-4">
+          Daily Scan Activity (Last 7 Days)
+        </h3>
+        <div className="h-64">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={formatChartData()}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+              <XAxis dataKey="date" stroke="#9CA3AF" fontSize={12} />
+              <YAxis
+                stroke="#9CA3AF"
+                fontSize={12}
+                allowDecimals={false}
+                domain={[0, "dataMax"]}
+              />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: "#1F2937",
+                  border: "1px solid #374151",
+                  color: "#F9FAFB",
+                }}
+              />
+              <Bar dataKey="scans" fill="#3B82F6" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
       </div>
     </div>
   );

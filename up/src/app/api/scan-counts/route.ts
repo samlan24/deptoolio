@@ -29,7 +29,7 @@ export async function GET() {
   }
 
   const { data, error } = await supabase
-    .rpc('get_daily_scan_counts', { user_uuid: user.id, days_back: 30 })
+    .rpc('get_daily_scan_counts', { user_uuid: user.id, days_back: 7 })
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })
