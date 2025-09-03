@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Allow: /about
+Allow: /terms
+Allow: /privacy
+Allow: /guides
+Allow: /checks
+Allow: /login
+Disallow: /dashboard
+Disallow: /repo-scanner

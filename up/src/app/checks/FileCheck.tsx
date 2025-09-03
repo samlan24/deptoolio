@@ -437,7 +437,7 @@ export default function Home() {
         <div className="text-center">
 
 
-          <div className="flex flex-col items-center space-y-4">
+          <div className="flex flex-col items-center space-y-4 mb-6">
             <label
               htmlFor="file-upload"
               className="relative cursor-pointer bg-white rounded-lg shadow-sm border-2 border-dashed border-gray-300 px-8 py-6 hover:border-gray-400 transition-colors inline-block"
