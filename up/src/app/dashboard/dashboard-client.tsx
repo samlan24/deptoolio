@@ -35,8 +35,6 @@ function PastScansTab() {
   const [dailyCounts, setDailyCounts] = useState<DailyScanCount[]>([]);
   const [loading, setLoading] = useState(true);
 
-
-
   const fetchDailyCounts = async () => {
     try {
       const response = await fetch("/api/scan-counts");
