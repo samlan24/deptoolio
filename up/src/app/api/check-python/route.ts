@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import pMap from "p-map";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { checkScanWithRateLimits } from '../../lib/scan-limits'
 
 interface PythonVersionSpec {
   name: string;
@@ -54,20 +55,7 @@ async function createClient() {
   );
 }
 
-async function checkScanWithRateLimits(userId: string) {
-  const supabase = await createClient();
 
-  const { data, error } = await supabase.rpc("check_scan_with_rate_limits", {
-    p_user_id: userId,
-  });
-
-  if (error) {
-    console.error("Error checking scan limits:", error);
-    return { allowed: false, error: "Database error" };
-  }
-
-  return data;
-}
 
 // Helper function to parse requirements.txt line
 function parseRequirementLine(line: string): PythonVersionSpec | null {

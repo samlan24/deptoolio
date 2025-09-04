@@ -3,6 +3,7 @@ import pMap from "p-map";
 import xml2js from "xml2js";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { checkScanWithRateLimits } from '../../lib/scan-limits'
 
 interface CsprojDependency {
   name: string;
@@ -50,20 +51,7 @@ async function createClient() {
   );
 }
 
-async function checkScanWithRateLimits(userId: string) {
-  const supabase = await createClient();
 
-  const { data, error } = await supabase.rpc("check_scan_with_rate_limits", {
-    p_user_id: userId,
-  });
-
-  if (error) {
-    console.error("Error checking scan limits:", error);
-    return { allowed: false, error: "Database error" };
-  }
-
-  return data;
-}
 
 // Compare semantic versions: returns
 // 0 if equal, >0 if v1 > v2, <0 if v1 < v2
