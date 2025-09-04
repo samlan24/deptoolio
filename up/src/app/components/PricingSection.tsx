@@ -13,52 +13,32 @@ const PricingSection = ({ id }: PricingSectionProps ) => {
       subtitle: "Get Started Free",
       price: "$0",
       period: "forever",
-      description: "Perfect for trying it out",
+      description: "Perfect for hobby projects and trying it out",
       icon: Star,
-      features: [
-        "10 manual file scans per month",
-        "Basic dependency scanning",
-        "View results (no save/history)",
-        "No GitHub integration",
-        "Results expire after session"
-      ],
+      scans: "10 scans / month",
       cta: "Start Free",
       popular: false,
     },
     {
-      name: "Starter",
-      subtitle: "For Individual Developers",
+      name: "Pro",
+      subtitle: "For Active Developers",
       price: "$10",
-      period: "one-time",
-      description: "50 scans, pay as you go",
+      period: "per month",
+      description: "More scans, same simple workflow",
       icon: Zap,
-      features: [
-        "50 scan credits",
-        "GitHub OAuth integration",
-        "Private & public repo access",
-        "Persistent scan history",
-        "Saved repositories for quick rescanning"
-      ],
-      cta: "Buy Starter Pack",
-      popular: false,
-    },
-    {
-      name: "Professional",
-      subtitle: "For Power Users",
-      price: "$25",
-      period: "one-time",
-      description: "150 scans, best value",
-      icon: Zap,
-      features: [
-        "150 scan credits",
-        "Everything in Starter",
-        "Export capabilities",
-        "Vulnerability tracking over time",
-        "Priority support"
-      ],
-      cta: "Buy Professional Pack",
+      scans: "250 scans / month",
+      cta: "Upgrade to Pro",
       popular: true,
     },
+  ];
+
+  const sharedFeatures = [
+    "Core dependency scanning engine",
+    "Supports 4+ languages",
+    "GitHub OAuth integration",
+    "Private & public repo access",
+    "Persistent scan history",
+    "Saved repositories for quick rescanning",
   ];
 
   return (
@@ -71,11 +51,11 @@ const PricingSection = ({ id }: PricingSectionProps ) => {
               <span className="block text-primary">Pricing</span>
             </h2>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-              Start free, buy credits when you need more. No hidden fees, no complicated tiers.
+              Same features. Different scan limits. Upgrade only when you need more.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-2 gap-8">
             {plans.map((plan, index) => (
               <Card
                 key={index}
@@ -105,7 +85,11 @@ const PricingSection = ({ id }: PricingSectionProps ) => {
                 </div>
 
                 <ul className="space-y-3 mb-8">
-                  {plan.features.map((feature, featureIndex) => (
+                  <li className="flex items-center gap-3">
+                    <Check className="w-5 h-5 text-primary flex-shrink-0" />
+                    <span className="font-medium text-foreground">{plan.scans}</span>
+                  </li>
+                  {sharedFeatures.map((feature, featureIndex) => (
                     <li key={featureIndex} className="flex items-center gap-3">
                       <Check className="w-5 h-5 text-primary flex-shrink-0" />
                       <span className="text-muted-foreground">{feature}</span>
@@ -121,14 +105,6 @@ const PricingSection = ({ id }: PricingSectionProps ) => {
                 </Button>
               </Card>
             ))}
-          </div>
-
-          <div className="text-center mt-12">
-            <p className="text-muted-foreground">
-              All plans include our core dependency scanning engine and support for 4+ languages.
-              <br />
-              <span className="text-sm">Need custom enterprise features? <span className="text-primary cursor-pointer hover:underline">Contact us</span></span>
-            </p>
           </div>
         </div>
       </div>
