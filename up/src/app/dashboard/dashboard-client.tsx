@@ -115,7 +115,6 @@ function PastScansTab() {
       <h2 className="text-2xl font-bold mb-6 text-white">Past Scans</h2>
 
       {/* Total Scans Summary */}
-      {/* Total Scans Summary */}
       <div className="bg-gray-800 rounded-lg p-6 mb-6">
         <h3 className="text-lg font-semibold text-white mb-2">Monthly Usage</h3>
         <div className="flex items-baseline gap-2">
