@@ -32,23 +32,14 @@ interface DailyScanCount {
 }
 
 function PastScansTab() {
-  const [scanHistory, setScanHistory] = useState<ScanHistoryItem[]>([]);
   const [dailyCounts, setDailyCounts] = useState<DailyScanCount[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchScanHistory = async () => {
-    try {
-      const response = await fetch("/api/scan-history");
-      const data = await response.json();
-      setScanHistory(data.scans || []);
-    } catch (error) {
-      console.error("Failed to fetch scan history:", error);
-    }
-  };
+
 
   const fetchDailyCounts = async () => {
     try {
-      const response = await fetch("/api/scan-counts"); // Remove the ?days=7 parameter
+      const response = await fetch("/api/scan-counts");
       const data = await response.json();
       setDailyCounts(data.dailyCounts || []);
     } catch (error) {
@@ -56,19 +47,10 @@ function PastScansTab() {
     }
   };
 
-  const deleteScan = async (scanId: string) => {
-    try {
-      await fetch(`/api/scan-history?id=${scanId}`, { method: "DELETE" });
-      fetchScanHistory(); // Refresh the list
-    } catch (error) {
-      console.error("Failed to delete scan:", error);
-    }
-  };
-
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
-      await Promise.all([fetchScanHistory(), fetchDailyCounts()]);
+      await Promise.all([fetchDailyCounts()]);
       setLoading(false);
     };
     loadData();
