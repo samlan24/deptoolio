@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import semver from "semver";
 import pMap from "p-map";
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
 
 interface VersionInfo {
   original: string;
@@ -27,6 +29,69 @@ function extractGitHubRepoInfo(
   const match = url.match(/github\.com\/([^/]+)\/([^/.]+)(\.git)?/i);
   if (!match) return null;
   return { owner: match[1], repo: match[2] };
+}
+
+async function createClient() {
+  const cookieStore = await cookies();
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            cookieStore.set(name, value, options);
+          });
+        },
+      },
+    }
+  );
+}
+
+async function checkMonthlyLimit(
+  userId: string
+): Promise<{ allowed: boolean; currentCount: number; limit: number }> {
+  const supabase = await createClient();
+
+  // Get user's current subscription
+  const { data: subscription, error: subError } = await supabase
+    .from("subscriptions")
+    .select("scan_limit")
+    .eq("user_id", userId)
+    .single();
+
+  if (subError || !subscription) {
+    return { allowed: false, currentCount: 0, limit: 0 };
+  }
+
+  // Calculate current month's usage
+  const now = new Date();
+  const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+    .toISOString()
+    .split("T")[0];
+
+  const { data: monthlyCounts, error: countError } = await supabase
+    .from("daily_scan_counts")
+    .select("scan_count")
+    .eq("user_id", userId)
+    .gte("scan_date", firstDayOfMonth);
+
+  if (countError) {
+    console.error("Error fetching monthly counts:", countError);
+    return { allowed: false, currentCount: 0, limit: subscription.scan_limit };
+  }
+
+  const currentMonthTotal =
+    monthlyCounts?.reduce((sum, day) => sum + (day.scan_count || 0), 0) || 0;
+
+  return {
+    allowed: currentMonthTotal < subscription.scan_limit,
+    currentCount: currentMonthTotal,
+    limit: subscription.scan_limit,
+  };
 }
 
 // Helper function to parse version ranges
@@ -123,6 +188,27 @@ function getLatestStableVersion(packageInfo: any): string {
 
 export async function POST(request: NextRequest) {
   try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const limitCheck = await checkMonthlyLimit(user.id);
+    if (!limitCheck.allowed) {
+      return NextResponse.json(
+        {
+          error: `Monthly scan limit exceeded. You have used ${limitCheck.currentCount}/${limitCheck.limit} scans this month.`,
+          limitExceeded: true,
+          currentCount: limitCheck.currentCount,
+          limit: limitCheck.limit,
+        },
+        { status: 429 }
+      );
+    }
     const formData = await request.formData();
     const file = formData.get("file") as File;
 

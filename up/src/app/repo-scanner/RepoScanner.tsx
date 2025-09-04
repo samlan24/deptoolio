@@ -244,6 +244,15 @@ export default function RepoScanner() {
       const scanResults = await scanResponse.json();
 
       if (scanResults.error) {
+        if (scanResults.limitExceeded) {
+          setError(`Scan limit exceeded: ${scanResults.error}`);
+        } else {
+          setError(scanResults.error);
+        }
+        return; // Important: return early, don't throw
+      }
+
+      if (scanResults.error) {
         throw new Error(scanResults.error);
       }
 
@@ -486,9 +495,9 @@ export default function RepoScanner() {
         }),
       });
 
-
-    const incrementResponse = await fetch("/api/increment-scan-count", { method: "POST" });
-
+      const incrementResponse = await fetch("/api/increment-scan-count", {
+        method: "POST",
+      });
 
       fetchScanHistory();
     } catch (error) {

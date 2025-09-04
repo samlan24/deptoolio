@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import pMap from "p-map";
 import xml2js from "xml2js";
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
 
 interface CsprojDependency {
   name: string;
@@ -28,10 +30,73 @@ interface NuGetDependencyResult {
   maintainersCount?: number;
 }
 
+async function createClient() {
+  const cookieStore = await cookies();
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            cookieStore.set(name, value, options);
+          });
+        },
+      },
+    }
+  );
+}
+
+async function checkMonthlyLimit(
+  userId: string
+): Promise<{ allowed: boolean; currentCount: number; limit: number }> {
+  const supabase = await createClient();
+
+  // Get user's current subscription
+  const { data: subscription, error: subError } = await supabase
+    .from("subscriptions")
+    .select("scan_limit")
+    .eq("user_id", userId)
+    .single();
+
+  if (subError || !subscription) {
+    return { allowed: false, currentCount: 0, limit: 0 };
+  }
+
+  // Calculate current month's usage
+  const now = new Date();
+  const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+    .toISOString()
+    .split("T")[0];
+
+  const { data: monthlyCounts, error: countError } = await supabase
+    .from("daily_scan_counts")
+    .select("scan_count")
+    .eq("user_id", userId)
+    .gte("scan_date", firstDayOfMonth);
+
+  if (countError) {
+    console.error("Error fetching monthly counts:", countError);
+    return { allowed: false, currentCount: 0, limit: subscription.scan_limit };
+  }
+
+  const currentMonthTotal =
+    monthlyCounts?.reduce((sum, day) => sum + (day.scan_count || 0), 0) || 0;
+
+  return {
+    allowed: currentMonthTotal < subscription.scan_limit,
+    currentCount: currentMonthTotal,
+    limit: subscription.scan_limit,
+  };
+}
+
 // Compare semantic versions: returns
 // 0 if equal, >0 if v1 > v2, <0 if v1 < v2
 function compareVersions(v1: string, v2: string): number {
-  const parse = (v: string) => v.split(".").map(x => parseInt(x));
+  const parse = (v: string) => v.split(".").map((x) => parseInt(x));
   const a = parse(v1);
   const b = parse(v2);
   for (let i = 0; i < Math.max(a.length, b.length); i++) {
@@ -43,7 +108,10 @@ function compareVersions(v1: string, v2: string): number {
 }
 
 // Determine dependency status based on version comparison
-function getDependencyStatus(currentVersion: string, latestVersion: string): "current" | "outdated" | "major" {
+function getDependencyStatus(
+  currentVersion: string,
+  latestVersion: string
+): "current" | "outdated" | "major" {
   if (compareVersions(currentVersion, latestVersion) >= 0) {
     return "current";
   }
@@ -53,16 +121,27 @@ function getDependencyStatus(currentVersion: string, latestVersion: string): "cu
 }
 
 // Fetch NuGet package metadata from API v3
-async function fetchNuGetPackageMetadata(packageId: string): Promise<{ latestVersion: string; lastUpdate: string; license: string | null; owners: NuGetPackageOwner[] } | null> {
+async function fetchNuGetPackageMetadata(packageId: string): Promise<{
+  latestVersion: string;
+  lastUpdate: string;
+  license: string | null;
+  owners: NuGetPackageOwner[];
+} | null> {
   try {
     // Search service base URL for NuGet API v3
-    const serviceIndexResponse = await fetch("https://api.nuget.org/v3/index.json");
+    const serviceIndexResponse = await fetch(
+      "https://api.nuget.org/v3/index.json"
+    );
     if (!serviceIndexResponse.ok) return null;
     const serviceIndex = await serviceIndexResponse.json();
 
     // Extract useful endpoints
-    const packageBaseAddress = serviceIndex.resources.find((r: any) => r["@type"] === "PackageBaseAddress/3.0.0")?.["@id"];
-    const registrationBaseUrl = serviceIndex.resources.find((r: any) => r["@type"].startsWith("RegistrationsBaseUrl"))?.["@id"];
+    const packageBaseAddress = serviceIndex.resources.find(
+      (r: any) => r["@type"] === "PackageBaseAddress/3.0.0"
+    )?.["@id"];
+    const registrationBaseUrl = serviceIndex.resources.find((r: any) =>
+      r["@type"].startsWith("RegistrationsBaseUrl")
+    )?.["@id"];
     const ownerEndpoint = `https://api.nuget.org/v3/registration5-gz-semver2/${packageId.toLowerCase()}/index.json`;
 
     if (!packageBaseAddress || !registrationBaseUrl) return null;
@@ -99,7 +178,11 @@ async function fetchNuGetPackageMetadata(packageId: string): Promise<{ latestVer
 
     // Owners not available as separate entities in this API;
     // You could parse catalog.authors for basic owner names.
-    const ownersArray = catalog.authors ? catalog.authors.split(",").map((o: string) => ({ username: o.trim(), url: "" })) : [];
+    const ownersArray = catalog.authors
+      ? catalog.authors
+          .split(",")
+          .map((o: string) => ({ username: o.trim(), url: "" }))
+      : [];
 
     return {
       latestVersion: latest.version,
@@ -127,7 +210,11 @@ async function parseCsproj(content: string): Promise<CsprojDependency[]> {
           for (const pkgRef of itemGroup.PackageReference) {
             const attrs = pkgRef.$ || {};
             const name = attrs.Include || attrs.Update;
-            const version = attrs.Version || (typeof pkgRef.Version === "string" ? pkgRef.Version : pkgRef.Version?.[0]);
+            const version =
+              attrs.Version ||
+              (typeof pkgRef.Version === "string"
+                ? pkgRef.Version
+                : pkgRef.Version?.[0]);
             if (name && version) {
               dependencies.push({ name, currentVersion: version });
             }
@@ -143,6 +230,27 @@ async function parseCsproj(content: string): Promise<CsprojDependency[]> {
 
 export async function POST(request: NextRequest) {
   try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const limitCheck = await checkMonthlyLimit(user.id);
+    if (!limitCheck.allowed) {
+      return NextResponse.json(
+        {
+          error: `Monthly scan limit exceeded. You have used ${limitCheck.currentCount}/${limitCheck.limit} scans this month.`,
+          limitExceeded: true,
+          currentCount: limitCheck.currentCount,
+          limit: limitCheck.limit,
+        },
+        { status: 429 }
+      );
+    }
     const formData = await request.formData();
     const file = formData.get("file") as File;
 
@@ -152,14 +260,20 @@ export async function POST(request: NextRequest) {
 
     const fileName = file.name.toLowerCase();
     if (!fileName.endsWith(".csproj")) {
-      return NextResponse.json({ error: "File must be a .csproj file" }, { status: 400 });
+      return NextResponse.json(
+        { error: "File must be a .csproj file" },
+        { status: 400 }
+      );
     }
 
     const content = await file.text();
     const dependencies = await parseCsproj(content);
 
     if (dependencies.length === 0) {
-      return NextResponse.json({ error: "No package references found in .csproj file" }, { status: 400 });
+      return NextResponse.json(
+        { error: "No package references found in .csproj file" },
+        { status: 400 }
+      );
     }
 
     const concurrency = 4;
@@ -172,7 +286,10 @@ export async function POST(request: NextRequest) {
           return null;
         }
 
-        const status = getDependencyStatus(dep.currentVersion, metadata.latestVersion);
+        const status = getDependencyStatus(
+          dep.currentVersion,
+          metadata.latestVersion
+        );
 
         return {
           name: dep.name,
@@ -190,7 +307,10 @@ export async function POST(request: NextRequest) {
     const filteredResults = results.filter((r) => r !== null);
 
     if (filteredResults.length === 0) {
-      return NextResponse.json({ error: "No valid dependencies could be processed" }, { status: 400 });
+      return NextResponse.json(
+        { error: "No valid dependencies could be processed" },
+        { status: 400 }
+      );
     }
 
     filteredResults.sort((a, b) => {
@@ -203,6 +323,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(filteredResults);
   } catch (error) {
     console.error("Error processing request:", error);
-    return NextResponse.json({ error: "Failed to process .csproj file" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to process .csproj file" },
+      { status: 500 }
+    );
   }
 }

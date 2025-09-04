@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import pMap from "p-map";
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
 
 interface VersionInfo {
   original: string;
@@ -34,6 +36,69 @@ interface PkgGoDevResponse {
   published_at?: string;
 }
 
+async function createClient() {
+  const cookieStore = await cookies();
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            cookieStore.set(name, value, options);
+          });
+        },
+      },
+    }
+  );
+}
+
+async function checkMonthlyLimit(
+  userId: string
+): Promise<{ allowed: boolean; currentCount: number; limit: number }> {
+  const supabase = await createClient();
+
+  // Get user's current subscription
+  const { data: subscription, error: subError } = await supabase
+    .from("subscriptions")
+    .select("scan_limit")
+    .eq("user_id", userId)
+    .single();
+
+  if (subError || !subscription) {
+    return { allowed: false, currentCount: 0, limit: 0 };
+  }
+
+  // Calculate current month's usage
+  const now = new Date();
+  const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+    .toISOString()
+    .split("T")[0];
+
+  const { data: monthlyCounts, error: countError } = await supabase
+    .from("daily_scan_counts")
+    .select("scan_count")
+    .eq("user_id", userId)
+    .gte("scan_date", firstDayOfMonth);
+
+  if (countError) {
+    console.error("Error fetching monthly counts:", countError);
+    return { allowed: false, currentCount: 0, limit: subscription.scan_limit };
+  }
+
+  const currentMonthTotal =
+    monthlyCounts?.reduce((sum, day) => sum + (day.scan_count || 0), 0) || 0;
+
+  return {
+    allowed: currentMonthTotal < subscription.scan_limit,
+    currentCount: currentMonthTotal,
+    limit: subscription.scan_limit,
+  };
+}
+
 // Helper function to parse Go module version
 function parseVersionRange(versionSpec: string): VersionInfo | null {
   // Go modules typically don't use range operators like npm/composer
@@ -55,8 +120,10 @@ function parseVersionRange(versionSpec: string): VersionInfo | null {
 
 // Helper function to check if a version is prerelease
 function isPrerelease(version: string): boolean {
-  return /-(alpha|beta|rc|pre|dev|snapshot)/i.test(version) ||
-         /-\d{14}-[a-f0-9]{12}$/.test(version); // Go pseudo-versions
+  return (
+    /-(alpha|beta|rc|pre|dev|snapshot)/i.test(version) ||
+    /-\d{14}-[a-f0-9]{12}$/.test(version)
+  ); // Go pseudo-versions
 }
 
 // Helper function to compare semantic versions
@@ -158,9 +225,12 @@ async function getVersionsFromProxy(modulePath: string): Promise<string[]> {
     }
 
     const versionsText = await response.text();
-    return versionsText.split('\n').filter(v => v.trim() !== '');
+    return versionsText.split("\n").filter((v) => v.trim() !== "");
   } catch (error) {
-    console.log(`Failed to fetch versions from Go proxy for ${modulePath}:`, error);
+    console.log(
+      `Failed to fetch versions from Go proxy for ${modulePath}:`,
+      error
+    );
     return [];
   }
 }
@@ -176,8 +246,7 @@ function getLatestStableVersion(versions: string[]): string {
 
 // Helper function to get latest version (including prereleases)
 function getLatestVersion(versions: string[]): string {
-  const sortedVersions = versions
-    .sort((a, b) => compareVersions(b, a)); // Sort descending
+  const sortedVersions = versions.sort((a, b) => compareVersions(b, a)); // Sort descending
 
   return sortedVersions[0] || "";
 }
@@ -185,7 +254,7 @@ function getLatestVersion(versions: string[]): string {
 // Parse go.mod file content
 function parseGoMod(content: string): Record<string, string> {
   const dependencies: Record<string, string> = {};
-  const lines = content.split('\n');
+  const lines = content.split("\n");
   let inRequireBlock = false;
   let inIndirectBlock = false;
 
@@ -193,28 +262,28 @@ function parseGoMod(content: string): Record<string, string> {
     line = line.trim();
 
     // Skip comments and empty lines
-    if (line.startsWith('//') || line === '') {
+    if (line.startsWith("//") || line === "") {
       continue;
     }
 
     // Handle require block
-    if (line.startsWith('require (')) {
+    if (line.startsWith("require (")) {
       inRequireBlock = true;
       continue;
     }
 
-    if (inRequireBlock && line === ')') {
+    if (inRequireBlock && line === ")") {
       inRequireBlock = false;
       continue;
     }
 
     // Check for indirect dependencies marker
-    if (line.includes('// indirect')) {
+    if (line.includes("// indirect")) {
       inIndirectBlock = true;
     }
 
     // Parse single require line
-    if (line.startsWith('require ') && !line.includes('(')) {
+    if (line.startsWith("require ") && !line.includes("(")) {
       const match = line.match(/require\s+([^\s]+)\s+([^\s]+)/);
       if (match) {
         dependencies[match[1]] = match[2];
@@ -223,9 +292,9 @@ function parseGoMod(content: string): Record<string, string> {
     }
 
     // Parse dependencies within require block
-    if (inRequireBlock && line !== '') {
+    if (inRequireBlock && line !== "") {
       // Skip indirect dependencies unless specified otherwise
-      if (line.includes('// indirect')) {
+      if (line.includes("// indirect")) {
         continue;
       }
 
@@ -241,6 +310,23 @@ function parseGoMod(content: string): Record<string, string> {
 
 export async function POST(request: NextRequest) {
   try {
+
+     const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const limitCheck = await checkMonthlyLimit(user.id)
+    if (!limitCheck.allowed) {
+      return NextResponse.json({
+        error: `Monthly scan limit exceeded. You have used ${limitCheck.currentCount}/${limitCheck.limit} scans this month.`,
+        limitExceeded: true,
+        currentCount: limitCheck.currentCount,
+        limit: limitCheck.limit
+      }, { status: 429 })
+    }
     const formData = await request.formData();
     const file = formData.get("file") as File;
 
@@ -258,10 +344,7 @@ export async function POST(request: NextRequest) {
     const contents = await file.text();
 
     if (!contents.trim()) {
-      return NextResponse.json(
-        { error: "Empty go.mod file" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Empty go.mod file" }, { status: 400 });
     }
 
     const allDeps = parseGoMod(contents);
@@ -350,9 +433,10 @@ export async function POST(request: NextRequest) {
           }
 
           // Use stable version for comparison if available and different from latest
-          const versionToCompare = latestStable && latestStable !== latestVersion
-            ? latestStable
-            : latestVersion;
+          const versionToCompare =
+            latestStable && latestStable !== latestVersion
+              ? latestStable
+              : latestVersion;
 
           const status = getDependencyStatus(
             versionInfo.cleaned,

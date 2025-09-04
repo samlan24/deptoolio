@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import pMap from "p-map";
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
 
 interface VersionInfo {
   original: string;
@@ -81,6 +83,69 @@ interface CrateResponse {
   categories: any[];
 }
 
+async function createClient() {
+  const cookieStore = await cookies();
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            cookieStore.set(name, value, options);
+          });
+        },
+      },
+    }
+  );
+}
+
+async function checkMonthlyLimit(
+  userId: string
+): Promise<{ allowed: boolean; currentCount: number; limit: number }> {
+  const supabase = await createClient();
+
+  // Get user's current subscription
+  const { data: subscription, error: subError } = await supabase
+    .from("subscriptions")
+    .select("scan_limit")
+    .eq("user_id", userId)
+    .single();
+
+  if (subError || !subscription) {
+    return { allowed: false, currentCount: 0, limit: 0 };
+  }
+
+  // Calculate current month's usage
+  const now = new Date();
+  const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+    .toISOString()
+    .split("T")[0];
+
+  const { data: monthlyCounts, error: countError } = await supabase
+    .from("daily_scan_counts")
+    .select("scan_count")
+    .eq("user_id", userId)
+    .gte("scan_date", firstDayOfMonth);
+
+  if (countError) {
+    console.error("Error fetching monthly counts:", countError);
+    return { allowed: false, currentCount: 0, limit: subscription.scan_limit };
+  }
+
+  const currentMonthTotal =
+    monthlyCounts?.reduce((sum, day) => sum + (day.scan_count || 0), 0) || 0;
+
+  return {
+    allowed: currentMonthTotal < subscription.scan_limit,
+    currentCount: currentMonthTotal,
+    limit: subscription.scan_limit,
+  };
+}
+
 // Helper function to parse Rust/Cargo version requirements
 function parseVersionRange(versionSpec: string): VersionInfo | null {
   const rangeMatch = versionSpec.match(/^([~^>=<*]+)/);
@@ -112,8 +177,12 @@ function isPrerelease(version: string): boolean {
 
 // Helper function to compare semantic versions
 function compareVersions(version1: string, version2: string): number {
-  const v1 = version1.split(/[.-]/).map(part => isNaN(Number(part)) ? part : Number(part));
-  const v2 = version2.split(/[.-]/).map(part => isNaN(Number(part)) ? part : Number(part));
+  const v1 = version1
+    .split(/[.-]/)
+    .map((part) => (isNaN(Number(part)) ? part : Number(part)));
+  const v2 = version2
+    .split(/[.-]/)
+    .map((part) => (isNaN(Number(part)) ? part : Number(part)));
 
   const maxLength = Math.max(v1.length, v2.length);
 
@@ -219,8 +288,8 @@ function getLatestVersion(versions: CrateVersion[]): string {
 // Parse Cargo.toml file content
 function parseCargoToml(content: string): Record<string, string> {
   const dependencies: Record<string, string> = {};
-  const lines = content.split('\n');
-  let currentSection = '';
+  const lines = content.split("\n");
+  let currentSection = "";
   let inDependenciesSection = false;
   let inDevDependenciesSection = false;
 
@@ -228,15 +297,17 @@ function parseCargoToml(content: string): Record<string, string> {
     line = line.trim();
 
     // Skip comments and empty lines
-    if (line.startsWith('#') || line === '') {
+    if (line.startsWith("#") || line === "") {
       continue;
     }
 
     // Check for section headers
     if (line.match(/^\[.*\]$/)) {
       currentSection = line.toLowerCase();
-      inDependenciesSection = currentSection === '[dependencies]';
-      inDevDependenciesSection = currentSection === '[dev-dependencies]' || currentSection === '[build-dependencies]';
+      inDependenciesSection = currentSection === "[dependencies]";
+      inDevDependenciesSection =
+        currentSection === "[dev-dependencies]" ||
+        currentSection === "[build-dependencies]";
       continue;
     }
 
@@ -250,7 +321,9 @@ function parseCargoToml(content: string): Record<string, string> {
       }
 
       // Handle table format: name = { version = "version", ... }
-      const tableMatch = line.match(/^([a-zA-Z0-9_-]+)\s*=\s*\{.*version\s*=\s*"([^"]+)".*\}$/);
+      const tableMatch = line.match(
+        /^([a-zA-Z0-9_-]+)\s*=\s*\{.*version\s*=\s*"([^"]+)".*\}$/
+      );
       if (tableMatch) {
         dependencies[tableMatch[1]] = tableMatch[2];
         continue;
@@ -258,7 +331,7 @@ function parseCargoToml(content: string): Record<string, string> {
 
       // Handle multi-line table format start
       const tableStartMatch = line.match(/^([a-zA-Z0-9_-]+)\s*=\s*\{/);
-      if (tableStartMatch && line.includes('version')) {
+      if (tableStartMatch && line.includes("version")) {
         const versionMatch = line.match(/version\s*=\s*"([^"]+)"/);
         if (versionMatch) {
           dependencies[tableStartMatch[1]] = versionMatch[2];
@@ -272,6 +345,27 @@ function parseCargoToml(content: string): Record<string, string> {
 
 export async function POST(request: NextRequest) {
   try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const limitCheck = await checkMonthlyLimit(user.id);
+    if (!limitCheck.allowed) {
+      return NextResponse.json(
+        {
+          error: `Monthly scan limit exceeded. You have used ${limitCheck.currentCount}/${limitCheck.limit} scans this month.`,
+          limitExceeded: true,
+          currentCount: limitCheck.currentCount,
+          limit: limitCheck.limit,
+        },
+        { status: 429 }
+      );
+    }
     const formData = await request.formData();
     const file = formData.get("file") as File;
 
@@ -382,7 +476,9 @@ export async function POST(request: NextRequest) {
 
           // Get metadata from the latest stable version (or latest if no stable)
           const versionForMetadata = latestStable || latestVersion;
-          const versionData = crateInfo.versions.find(v => v.num === versionForMetadata);
+          const versionData = crateInfo.versions.find(
+            (v) => v.num === versionForMetadata
+          );
 
           const license = versionData?.license || null;
           const lastUpdate = versionData?.updated_at || null;
@@ -391,9 +487,10 @@ export async function POST(request: NextRequest) {
           const maintainersCount = null;
 
           // Use stable version for comparison if available and different from latest
-          const versionToCompare = latestStable && latestStable !== latestVersion
-            ? latestStable
-            : latestVersion;
+          const versionToCompare =
+            latestStable && latestStable !== latestVersion
+              ? latestStable
+              : latestVersion;
 
           const status = getDependencyStatus(
             versionInfo.cleaned,

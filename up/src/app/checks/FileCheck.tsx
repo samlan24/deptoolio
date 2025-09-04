@@ -186,12 +186,16 @@ export default function Home() {
       const data = await response.json();
 
       if (data.error) {
-        alert(`Error: ${data.error}`);
+        if (data.limitExceeded) {
+          alert(`Scan limit exceeded: ${data.error}`);
+        } else {
+          alert(`Error: ${data.error}`);
+        }
         setResults([]);
       } else {
         setResults(data);
-        // Increment scan count only on successful scan
-         await fetch("/api/increment-scan-count", { method: "POST" });
+        // Only increment scan count on successful scan (this stays the same)
+        await fetch("/api/increment-scan-count", { method: "POST" });
       }
     } catch (error) {
       console.error("Error uploading file:", error);
@@ -437,8 +441,6 @@ export default function Home() {
     <div className="min-h-screen">
       <div className="max-w-4xl mx-auto">
         <div className="text-center">
-
-
           <div className="flex flex-col items-center space-y-4 mb-6">
             <label
               htmlFor="file-upload"

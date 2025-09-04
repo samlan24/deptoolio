@@ -34,6 +34,24 @@ interface DailyScanCount {
 function PastScansTab() {
   const [dailyCounts, setDailyCounts] = useState<DailyScanCount[]>([]);
   const [loading, setLoading] = useState(true);
+  const [subscription, setSubscription] = useState<any>(null);
+  const [monthlyUsage, setMonthlyUsage] = useState(0);
+
+  const fetchSubscriptionAndUsage = async () => {
+    try {
+      // Fetch subscription info
+      const subResponse = await fetch("/api/subscription");
+      const subData = await subResponse.json();
+      setSubscription(subData.subscription);
+
+      // Fetch monthly usage
+      const usageResponse = await fetch("/api/monthly-usage");
+      const usageData = await usageResponse.json();
+      setMonthlyUsage(usageData.monthlyTotal || 0);
+    } catch (error) {
+      console.error("Failed to fetch subscription data:", error);
+    }
+  };
 
   const fetchDailyCounts = async () => {
     try {
@@ -48,7 +66,7 @@ function PastScansTab() {
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
-      await Promise.all([fetchDailyCounts()]);
+      await Promise.all([fetchDailyCounts(), fetchSubscriptionAndUsage()]);
       setLoading(false);
     };
     loadData();
@@ -97,11 +115,35 @@ function PastScansTab() {
       <h2 className="text-2xl font-bold mb-6 text-white">Past Scans</h2>
 
       {/* Total Scans Summary */}
+      {/* Total Scans Summary */}
       <div className="bg-gray-800 rounded-lg p-6 mb-6">
-        <h3 className="text-lg font-semibold text-white mb-2">
-          Total Scans (Last 7 Days)
-        </h3>
-        <p className="text-3xl font-bold text-blue-400">{totalScans}</p>
+        <h3 className="text-lg font-semibold text-white mb-2">Monthly Usage</h3>
+        <div className="flex items-baseline gap-2">
+          <p className="text-3xl font-bold text-blue-400">{monthlyUsage}</p>
+          <p className="text-xl text-gray-400">
+            / {subscription?.scan_limit || 10}
+          </p>
+        </div>
+        <div className="mt-2 w-full bg-gray-700 rounded-full h-2">
+          <div
+            className={`h-2 rounded-full transition-all ${
+              monthlyUsage >= (subscription?.scan_limit || 10)
+                ? "bg-red-500"
+                : monthlyUsage >= (subscription?.scan_limit || 10) * 0.8
+                ? "bg-yellow-500"
+                : "bg-blue-500"
+            }`}
+            style={{
+              width: `${Math.min(
+                (monthlyUsage / (subscription?.scan_limit || 10)) * 100,
+                100
+              )}%`,
+            }}
+          ></div>
+        </div>
+        <p className="text-sm text-gray-400 mt-1">
+          {subscription?.scan_limit - monthlyUsage} scans remaining this month
+        </p>
       </div>
 
       {/* Daily Scan Chart */}
