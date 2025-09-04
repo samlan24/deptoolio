@@ -506,70 +506,6 @@ export default function RepoScanner() {
     }
   };
 
-  const handleRescan = async (scan: any) => {
-    // First ensure repos are loaded
-    if (repos.length === 0) {
-      await fetchRepos();
-    }
-
-    const repo = repos.find((r) => r.name === scan.repo_name); // ← Changed
-    if (!repo) {
-      setError(`Repository "${scan.repo_name}" not found`);
-      return;
-    }
-
-    setSelectedRepo(repo);
-    setError("");
-    setSearching(true);
-
-    try {
-      const [owner, repoName] = repo.full_name.split("/");
-      const response = await fetch(
-        `/api/github/file?owner=${owner}&repo=${repoName}`
-      );
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch repository files");
-      }
-
-      const data = await response.json();
-      setPackageJsonFiles(data.files);
-
-      const targetFile = data.files.find(
-        (f: PackageJsonFile) => f.path === scan.file_path // ← Changed
-      );
-
-      if (targetFile) {
-        setSelectedFile(targetFile);
-        // Set the file type to match the scan
-        setFileType(
-          scan.file_type as
-            | "javascript"
-            | "python"
-            | "go"
-            | "php"
-            | "rust"
-            | "net"
-        );
-
-        // Auto-scan after setting file with a longer delay
-        setTimeout(() => {
-          if (selectedRepo && selectedFile) {
-            // Double-check state is set
-            scanPackageJson();
-          }
-        }, 500);
-      } else {
-        setError(`File "${scan.file_path}" not found in repository`);
-      }
-    } catch (err) {
-      setError("Failed to rescan repository");
-      console.error("Rescan error:", err);
-    } finally {
-      setSearching(false);
-    }
-  };
-
   const fetchScanHistory = async () => {
     try {
       const response = await fetch("/api/scan-history");
@@ -955,12 +891,6 @@ export default function RepoScanner() {
                           {scan.major_count} major
                         </span>
                       )}
-                      <button
-                        onClick={() => handleRescan(scan)}
-                        className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
-                      >
-                        Rescan
-                      </button>
                       <button
                         onClick={() => deleteScanFromHistory(scan.id)}
                         className="text-xs px-2 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200"
