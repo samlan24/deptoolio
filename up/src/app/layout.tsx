@@ -26,11 +26,46 @@ export const metadata: Metadata = {
     default: "Pacgie",
     template: "%s | Pacgie",
   },
-  description: "Package file scanner for outdated and vulnerable dependencies.",
+  description:
+    "Package file scanner for outdated and vulnerable dependencies.",
   twitter: {
     card: "summary_large_image",
     title: "Pacgie",
-    description: "Package file scanner for outdated and vulnerable dependencies.",
+    description:
+      "Package file scanner for outdated and vulnerable dependencies.",
+  },
+  openGraph: {
+    title: "Pacgie",
+    description:
+      "Package file scanner for outdated and vulnerable dependencies.",
+    type: "website",
+    url: "https://deptoolio.vercel.app",
+  },
+  alternates: {
+    canonical: "https://deptoolio.vercel.app",
+  },
+};
+
+const structuredData = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: "Pacgie",
+  url: "https://deptoolio.vercel.app",
+  description:
+    "Pacgie is a package file scanner that checks for outdated and vulnerable dependencies across multiple programming languages.",
+  potentialAction: {
+    "@type": "SearchAction",
+    target: "https://deptoolio.vercel.app/search?q={search_term_string}",
+    "query-input": "required name=search_term_string",
+  },
+  publisher: {
+    "@type": "Organization",
+    name: "Pacgie",
+    url: "https://deptoolio.vercel.app",
+    logo: {
+      "@type": "ImageObject",
+      url: "https://deptoolio.vercel.app/logo.png",
+    },
   },
 };
 
@@ -41,8 +76,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+        />
+      </head>
       <body className={`${inter.variable} antialiased`}>
-        <Navigation /> {/* Add this */}
+        <Navigation />
         {children}
         <Footer />
       </body>

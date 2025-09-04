@@ -4,7 +4,45 @@ import { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Dependency Checker",
   description: "Upload your dependency files to check for outdated packages.",
-}
+  openGraph: {
+    title: "Dependency Checker",
+    description:
+      "Upload your dependency files to check for outdated packages.",
+    type: "website",
+    url: "https://deptoolio.vercel.app/dependency-checker",
+  },
+  alternates: {
+    canonical: "https://deptoolio.vercel.app/dependency-checker",
+  },
+};
+
+const structuredData = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: "Dependency Checker",
+  applicationCategory: "DeveloperApplication",
+  operatingSystem: "Any",
+  description:
+    "A free online tool to upload dependency files and check for outdated packages across JavaScript, Python, PHP, Go, Rust, and .NET projects.",
+  url: "https://deptoolio.vercel.app/dependency-checker",
+  featureList: [
+    "Upload package.json, go.mod, requirements.txt, Pipfile, composer.json, cargo.toml, .csproj",
+    "Scan for outdated dependencies",
+    "Highlight security, stability, and performance improvements",
+    "Best practices for updating dependencies",
+  ],
+  keywords: [
+    "dependency checker",
+    "outdated packages",
+    "update dependencies",
+    "JavaScript",
+    "Python",
+    "PHP",
+    "Go",
+    "Rust",
+    ".NET",
+  ],
+};
 
 export default async function FileCheck() {
   return (
