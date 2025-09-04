@@ -186,12 +186,21 @@ export default function Home() {
       const data = await response.json();
 
       if (data.error) {
-        if (data.limitExceeded) {
-          alert(`Scan limit exceeded: ${data.error}`);
+        if (data.rate_limited) {
+          if (data.type === "global") {
+            alert("System is under heavy load. Please try again in a moment.");
+          } else {
+            alert(
+              "Too many requests. Please wait a minute before trying again."
+            );
+          }
+        } else if (data.limit_exceeded) {
+          alert(`Monthly scan limit exceeded: ${data.error}`);
         } else {
           alert(`Error: ${data.error}`);
         }
         setResults([]);
+        return;
       } else {
         setResults(data);
       }

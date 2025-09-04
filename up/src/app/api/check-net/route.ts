@@ -50,36 +50,19 @@ async function createClient() {
   );
 }
 
-async function checkAndIncrementScanLimit(
-  userId: string
-): Promise<{
-  allowed: boolean;
-  error?: string;
-  currentCount: number;
-  limit: number;
-}> {
+async function checkScanWithRateLimits(userId: string) {
   const supabase = await createClient();
 
-  const { data, error } = await supabase.rpc("check_and_increment_scan_limit", {
+  const { data, error } = await supabase.rpc("check_scan_with_rate_limits", {
     p_user_id: userId,
   });
 
   if (error) {
-    console.error("Error checking scan limit:", error);
-    return {
-      allowed: false,
-      error: "Database error",
-      currentCount: 0,
-      limit: 0,
-    };
+    console.error("Error checking scan limits:", error);
+    return { allowed: false, error: "Database error" };
   }
 
-  return {
-    allowed: data.allowed,
-    error: data.error,
-    currentCount: data.current_count,
-    limit: data.limit,
-  };
+  return data;
 }
 
 // Compare semantic versions: returns
@@ -228,19 +211,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const limitResult = await checkAndIncrementScanLimit(user.id);
+    const limitResult = await checkScanWithRateLimits(user.id);
     if (!limitResult.allowed) {
-      return NextResponse.json(
-        {
-          error:
-            limitResult.error ||
-            `Monthly scan limit exceeded. You have used ${limitResult.currentCount}/${limitResult.limit} scans this month.`,
-          limitExceeded: true,
-          currentCount: limitResult.currentCount,
-          limit: limitResult.limit,
-        },
-        { status: 429 }
-      );
+      const status = limitResult.rate_limited
+        ? 429
+        : limitResult.limit_exceeded
+        ? 429
+        : 500;
+
+      const headers: Record<string, string> = {};
+      if (limitResult.retry_after !== undefined) {
+        headers["Retry-After"] = String(limitResult.retry_after);
+      }
+
+      return NextResponse.json(limitResult, { status, headers });
     }
     const formData = await request.formData();
     const file = formData.get("file") as File;

@@ -244,12 +244,22 @@ export default function RepoScanner() {
       const scanResults = await scanResponse.json();
 
       if (scanResults.error) {
-        if (scanResults.limitExceeded) {
-          setError(`Scan limit exceeded: ${scanResults.error}`);
+        if (scanResults.rate_limited) {
+          if (scanResults.type === "global") {
+            setError(
+              "System is under heavy load. Please try again in a moment."
+            );
+          } else {
+            setError(
+              "Too many requests. Please wait a minute before trying again."
+            );
+          }
+        } else if (scanResults.limit_exceeded) {
+          setError(`Monthly scan limit exceeded: ${scanResults.error}`);
         } else {
           setError(scanResults.error);
         }
-        return; // Important: return early, don't throw
+        return;
       }
 
       if (scanResults.error) {
