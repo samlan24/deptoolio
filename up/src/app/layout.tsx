@@ -26,8 +26,7 @@ export const metadata: Metadata = {
     default: "Pacgie",
     template: "%s | Pacgie",
   },
-  description:
-    "Package file scanner for outdated and vulnerable dependencies.",
+  description: "Package file scanner for outdated and vulnerable dependencies.",
   twitter: {
     card: "summary_large_image",
     title: "Pacgie",
