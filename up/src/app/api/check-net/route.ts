@@ -50,46 +50,35 @@ async function createClient() {
   );
 }
 
-async function checkMonthlyLimit(
+async function checkAndIncrementScanLimit(
   userId: string
-): Promise<{ allowed: boolean; currentCount: number; limit: number }> {
+): Promise<{
+  allowed: boolean;
+  error?: string;
+  currentCount: number;
+  limit: number;
+}> {
   const supabase = await createClient();
 
-  // Get user's current subscription
-  const { data: subscription, error: subError } = await supabase
-    .from("subscriptions")
-    .select("scan_limit")
-    .eq("user_id", userId)
-    .single();
+  const { data, error } = await supabase.rpc("check_and_increment_scan_limit", {
+    p_user_id: userId,
+  });
 
-  if (subError || !subscription) {
-    return { allowed: false, currentCount: 0, limit: 0 };
+  if (error) {
+    console.error("Error checking scan limit:", error);
+    return {
+      allowed: false,
+      error: "Database error",
+      currentCount: 0,
+      limit: 0,
+    };
   }
-
-  // Calculate current month's usage
-  const now = new Date();
-  const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-    .toISOString()
-    .split("T")[0];
-
-  const { data: monthlyCounts, error: countError } = await supabase
-    .from("daily_scan_counts")
-    .select("scan_count")
-    .eq("user_id", userId)
-    .gte("scan_date", firstDayOfMonth);
-
-  if (countError) {
-    console.error("Error fetching monthly counts:", countError);
-    return { allowed: false, currentCount: 0, limit: subscription.scan_limit };
-  }
-
-  const currentMonthTotal =
-    monthlyCounts?.reduce((sum, day) => sum + (day.scan_count || 0), 0) || 0;
 
   return {
-    allowed: currentMonthTotal < subscription.scan_limit,
-    currentCount: currentMonthTotal,
-    limit: subscription.scan_limit,
+    allowed: data.allowed,
+    error: data.error,
+    currentCount: data.current_count,
+    limit: data.limit,
   };
 }
 
@@ -239,14 +228,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const limitCheck = await checkMonthlyLimit(user.id);
-    if (!limitCheck.allowed) {
+    const limitResult = await checkAndIncrementScanLimit(user.id);
+    if (!limitResult.allowed) {
       return NextResponse.json(
         {
-          error: `Monthly scan limit exceeded. You have used ${limitCheck.currentCount}/${limitCheck.limit} scans this month.`,
+          error:
+            limitResult.error ||
+            `Monthly scan limit exceeded. You have used ${limitResult.currentCount}/${limitResult.limit} scans this month.`,
           limitExceeded: true,
-          currentCount: limitCheck.currentCount,
-          limit: limitCheck.limit,
+          currentCount: limitResult.currentCount,
+          limit: limitResult.limit,
         },
         { status: 429 }
       );

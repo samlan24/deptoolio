@@ -194,8 +194,6 @@ export default function Home() {
         setResults([]);
       } else {
         setResults(data);
-        // Only increment scan count on successful scan (this stays the same)
-        await fetch("/api/increment-scan-count", { method: "POST" });
       }
     } catch (error) {
       console.error("Error uploading file:", error);

@@ -495,10 +495,6 @@ export default function RepoScanner() {
         }),
       });
 
-      const incrementResponse = await fetch("/api/increment-scan-count", {
-        method: "POST",
-      });
-
       fetchScanHistory();
     } catch (error) {
       console.error("Failed to save scan:", error);
