@@ -508,21 +508,6 @@ export default function Home() {
                         Connect GitHub
                       </button>
                     </Link>
-                    <button
-                      onClick={() =>
-                        (window.location.href = "/api/auth/gitlab")
-                      }
-                      className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700"
-                    >
-                      <svg
-                        className="w-5 h-5"
-                        fill="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path d="M22.47 9.6l-1.3-4.1a1.05 1.05 0 0 0-2 0L17.5 9.6H6.5L4.8 5.5a1.05 1.05 0 0 0-2 0L1.47 9.6a1.07 1.07 0 0 0 .4 1.2L12 22.6l10.1-11.8c.3-.3.4-.8.3-1.2z" />
-                      </svg>
-                      Connect GitLab
-                    </button>
                   </div>
                 )}
               </>
