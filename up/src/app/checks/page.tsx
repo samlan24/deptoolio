@@ -1,4 +1,10 @@
 import Home from "./FileCheck";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Dependency Checker",
+  description: "Upload your dependency files to check for outdated packages.",
+}
 
 export default async function FileCheck() {
   return (

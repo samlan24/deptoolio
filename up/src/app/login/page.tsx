@@ -2,6 +2,12 @@
 
 import { createClient } from '../lib/supabase'
 import { Github } from "lucide-react"
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Login - Pacgie",
+  description: "Login to Pacgie to manage your projects and track dependencies.",
+};
 
 export default function LoginPage() {
   const supabase = createClient()

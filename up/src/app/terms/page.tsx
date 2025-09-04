@@ -1,3 +1,10 @@
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Privacy Policy",
+  description: "Read our privacy policy to understand how we handle your data.",
+};
+
 export default function TermsPage() {
   return (
     <div className="pt-20 max-w-3xl mx-auto px-6 py-12">
@@ -34,15 +41,25 @@ export default function TermsPage() {
         </li>
       </ul>
 
-      <h2 className="text-xl font-semibold mt-8 mb-4">3. User Responsibilities</h2>
+      <h2 className="text-xl font-semibold mt-8 mb-4">
+        3. User Responsibilities
+      </h2>
       <ul className="list-disc ml-6 mb-6 space-y-2">
         <li>Provide accurate account details (including email).</li>
         <li>Do not use Pacgie for illegal, abusive, or malicious purposes.</li>
-        <li>Do not attempt to bypass limits, reverse engineer, or disrupt the service.</li>
-        <li>You are responsible for maintaining the security of your account/token.</li>
+        <li>
+          Do not attempt to bypass limits, reverse engineer, or disrupt the
+          service.
+        </li>
+        <li>
+          You are responsible for maintaining the security of your
+          account/token.
+        </li>
       </ul>
 
-      <h2 className="text-xl font-semibold mt-8 mb-4">4. Limitation of Liability</h2>
+      <h2 className="text-xl font-semibold mt-8 mb-4">
+        4. Limitation of Liability
+      </h2>
       <p className="mb-4">
         Pacgie is provided “as is” without warranties. We are not liable for
         damages, loss of data, or service interruptions. Upload limits and

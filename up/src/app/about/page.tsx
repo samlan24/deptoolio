@@ -1,3 +1,10 @@
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "About Pacgie",
+  description: "Learn more about Pacgie, our mission, and how we help developers manage dependencies.",
+};
+
 export default function AboutPage() {
   return (
     <div className="pt-20 max-w-3xl mx-auto px-6 py-12">

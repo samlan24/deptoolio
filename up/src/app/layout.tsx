@@ -22,8 +22,16 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Pacgie - Multi-language Dependency Manager",
-  description: "Dependency management made easy.",
+  title: {
+    default: "Pacgie",
+    template: "%s | Pacgie",
+  },
+  description: "Package file scanner for outdated and vulnerable dependencies.",
+  twitter: {
+    card: "summary_large_image",
+    title: "Pacgie",
+    description: "Package file scanner for outdated and vulnerable dependencies.",
+  },
 };
 
 export default function RootLayout({

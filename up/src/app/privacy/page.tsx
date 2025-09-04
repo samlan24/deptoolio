@@ -1,3 +1,11 @@
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Privacy Policy",
+  description: "Read our privacy policy to understand how we handle your data.",
+};
+
+
 export default function PrivacyPage() {
   return (
     <div className="pt-20 max-w-3xl mx-auto px-6 py-12">
