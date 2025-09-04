@@ -38,7 +38,7 @@ const PricingSection = ({ id }: PricingSectionProps ) => {
     "GitHub OAuth integration",
     "Private & public repo access",
     "Persistent scan history",
-    "Saved repositories for quick rescanning",
+
   ];
 
   return (
