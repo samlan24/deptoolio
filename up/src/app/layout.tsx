@@ -47,16 +47,12 @@ export const metadata: Metadata = {
 
 const structuredData = {
   "@context": "https://schema.org",
-  "@type": "WebSite",
+  "@type": "WebApplication",
   name: "Pacgie",
   url: "https://deptoolio.vercel.app",
-  description:
-    "Pacgie is a package file scanner that checks for outdated and vulnerable dependencies across multiple programming languages.",
-  publisher: {
-    "@type": "Organization",
-    name: "Pacgie",
-    url: "https://deptoolio.vercel.app",
-  },
+  description: "Package file scanner for outdated and vulnerable dependencies",
+  applicationCategory: "DeveloperApplication",
+  browserRequirements: "Requires JavaScript. Requires HTML5.",
 };
 
 export default function RootLayout({
