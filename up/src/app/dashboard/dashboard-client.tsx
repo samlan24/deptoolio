@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { Clock, CreditCard, Settings, Trash2, RotateCcw } from "lucide-react";
 import {
   BarChart,
@@ -186,9 +187,11 @@ function BillingTab() {
           <p className="text-white font-medium">Current Plan: Free Tier</p>
           <p className="text-gray-400 text-sm">10 manual uploads per month</p>
         </div>
+         <Link href="/upgrade">
         <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
           Upgrade to Pro
         </button>
+        </Link>
       </div>
     </div>
   );
