@@ -1,46 +1,81 @@
-import { NextRequest, NextResponse } from 'next/server';
+// app/api/create-checkout/route.ts
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
+import { NextRequest, NextResponse } from "next/server";
+
+async function createClient() {
+  const cookieStore = await cookies();
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            cookieStore.set(name, value, options);
+          });
+        },
+      },
+    }
+  );
+}
 
 export async function POST(request: NextRequest) {
   try {
-    const { planId, priceId } = await request.json();
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
-    // Replace with your actual Lemon Squeezy integration
-    const response = await fetch('https://api.lemonsqueezy.com/v1/checkouts', {
-      method: 'POST',
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const response = await fetch("https://api.lemonsqueezy.com/v1/checkouts", {
+      method: "POST",
       headers: {
-        'Authorization': `Bearer ${process.env.LEMON_SQUEEZY_API_KEY}`,
-        'Content-Type': 'application/json',
+        Authorization: `Bearer ${process.env.LEMON_SQUEEZY_API_KEY}`,
+        "Content-Type": "application/vnd.api+json",
+        Accept: "application/vnd.api+json",
       },
       body: JSON.stringify({
         data: {
-          type: 'checkouts',
+          type: "checkouts",
           attributes: {
             checkout_options: {
               embed: false,
               media: false,
               logo: true,
+              dark: true,
             },
-            checkout_data: {
-              email: 'user@example.com', // Get from user session
+            checkout_data: [
+              {
+                email: user.email,
+              },
+            ],
+            custom_data: {
+              user_id: user.id, // Pass user ID for webhook handling
             },
             product_options: {
-              name: 'Pacgie Pro',
-              description: 'Monthly Pro subscription',
-              media: ['https://your-domain.com/logo.png'],
+              name: "Pacgie Pro",
+              description: "Monthly Pro subscription - 250 scans per month",
             },
             expires_at: null,
           },
           relationships: {
             store: {
               data: {
-                type: 'stores',
+                type: "stores",
                 id: process.env.LEMON_SQUEEZY_STORE_ID,
               },
             },
             variant: {
               data: {
-                type: 'variants',
-                id: priceId,
+                type: "variants",
+                id: process.env.LEMON_SQUEEZY_VARIANT_ID,
               },
             },
           },
@@ -48,15 +83,21 @@ export async function POST(request: NextRequest) {
       }),
     });
 
+    if (!response.ok) {
+      const error = await response.text();
+      console.error("Lemon Squeezy API error:", error);
+      throw new Error("Failed to create checkout");
+    }
+
     const data = await response.json();
 
     return NextResponse.json({
-      checkoutUrl: data.data.attributes.url
+      checkoutUrl: data.data.attributes.url,
     });
   } catch (error) {
-    console.error('Checkout creation failed:', error);
+    console.error("Checkout creation failed:", error);
     return NextResponse.json(
-      { error: 'Failed to create checkout session' },
+      { error: "Failed to create checkout session" },
       { status: 500 }
     );
   }
