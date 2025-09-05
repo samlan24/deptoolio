@@ -38,6 +38,7 @@ export default function Home() {
   const [vulnerabilityLoading, setVulnerabilityLoading] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const supabase = createClient();
 
   // File type detection logic (same as before)
@@ -186,7 +187,10 @@ export default function Home() {
       const data = await response.json();
 
       if (data.error) {
-        if (data.rate_limited) {
+        if (data.requiresAuth) {
+          setShowAuthModal(true);
+          return;
+        } else if (data.rate_limited) {
           if (data.type === "global") {
             alert("System is under heavy load. Please try again in a moment.");
           } else {
@@ -692,6 +696,34 @@ export default function Home() {
           </>
         )}
       </div>
+      {/* Auth Modal */}
+      {showAuthModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div className="text-center">
+              <h3 className="text-lg font-semibold mb-4">
+                Sign in to scan file
+              </h3>
+              <p className="text-gray-600 mb-6">
+                Please sign in to your account to scan dependency files.
+              </p>
+              <div className="flex gap-3 justify-center">
+                <Link href="/login">
+                  <button className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                    Sign In
+                  </button>
+                </Link>
+                <button
+                  onClick={() => setShowAuthModal(false)}
+                  className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

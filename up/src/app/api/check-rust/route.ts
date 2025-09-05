@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import pMap from "p-map";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
-import { checkScanWithRateLimits } from '../../lib/scan-limits'
+import { checkScanWithRateLimits } from "../../lib/scan-limits";
 
 interface VersionInfo {
   original: string;
@@ -103,8 +103,6 @@ async function createClient() {
     }
   );
 }
-
-
 
 // Helper function to parse Rust/Cargo version requirements
 function parseVersionRange(versionSpec: string): VersionInfo | null {
@@ -311,7 +309,13 @@ export async function POST(request: NextRequest) {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json(
+        {
+          error: "Authentication required",
+          requiresAuth: true,
+        },
+        { status: 401 }
+      );
     }
 
     const limitResult = await checkScanWithRateLimits(user.id);
