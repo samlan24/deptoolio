@@ -26,6 +26,8 @@ export async function POST(request: NextRequest) {
     const eventType = event.meta.event_name;
     const subscription = event.data;
 
+    console.log("Webhook received - eventType:", eventType);
+
     switch (eventType) {
       case "subscription_created":
         await handleSubscriptionCreated(subscription, event.meta);
@@ -46,51 +48,91 @@ export async function POST(request: NextRequest) {
 }
 
 async function handleSubscriptionCreated(subscription: any, meta: any) {
-  const userId = meta.custom_data?.user_id;
+  console.log(
+    "Webhook received - subscription:",
+    JSON.stringify(subscription, null, 2)
+  );
+  console.log("Webhook received - meta:", JSON.stringify(meta, null, 2));
 
-  if (!userId) return;
+  const userId =
+    meta.custom_data?.user_id ||
+    subscription.attributes?.checkout_data?.custom?.user_id ||
+    subscription.attributes?.custom?.user_id;
 
-  // Safely handle date conversion
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return null;
-    try {
-      const date = new Date(dateString);
-      return isNaN(date.getTime()) ? null : date.toISOString().split("T")[0];
-    } catch {
-      return null;
-    }
-  };
+  console.log("Extracted userId:", userId);
 
-  await supabase.from("subscriptions").upsert({
+  if (!userId) {
+    console.log("No userId found, skipping");
+    return;
+  }
+
+  // Calculate period dates from renews_at
+  const renewsAt = new Date(subscription.attributes.renews_at);
+  const createdAt = new Date(subscription.attributes.created_at);
+
+  // For monthly subscription, period_start is created_at, period_end is renews_at
+  const periodStart = createdAt.toISOString().split("T")[0];
+  const periodEnd = renewsAt.toISOString().split("T")[0];
+
+  const insertData = {
     user_id: userId,
     lemon_squeezy_id: subscription.id,
     status: subscription.attributes.status,
     plan: "pro",
     scan_limit: 250,
-    plan_type: "pro",
-    period_start: formatDate(subscription.attributes.current_period_start),
-    period_end: formatDate(subscription.attributes.current_period_end),
-    current_period_start: subscription.attributes.current_period_start,
-    current_period_end: subscription.attributes.current_period_end,
-  });
-}
+    period_start: periodStart,
+    period_end: periodEnd,
+  };
 
+  console.log("Attempting to insert:", insertData);
+
+  // Use lemon_squeezy_id for conflict resolution since it has a unique constraint
+  const { data, error } = await supabase
+    .from("subscriptions")
+    .upsert(insertData, { onConflict: "lemon_squeezy_id" })
+    .select();
+
+  if (error) {
+    console.error("Database error:", error);
+    throw error;
+  } else {
+    console.log("Successfully inserted/updated subscription:", data);
+  }
+}
 async function handleSubscriptionUpdated(subscription: any) {
-  await supabase
+  console.log("Updating subscription:", subscription.id);
+
+  const { data, error } = await supabase
     .from("subscriptions")
     .update({
       status: subscription.attributes.status,
-      current_period_start: subscription.attributes.current_period_start,
-      current_period_end: subscription.attributes.current_period_end,
     })
-    .eq("lemon_squeezy_id", subscription.id);
+    .eq("lemon_squeezy_id", subscription.id)
+    .select();
+
+  if (error) {
+    console.error("Update error:", error);
+    throw error;
+  } else {
+    console.log("Successfully updated subscription:", data);
+  }
 }
 
 async function handleSubscriptionCancelled(subscription: any) {
-  await supabase
+  console.log("Cancelling subscription:", subscription.id);
+
+  const { data, error } = await supabase
     .from("subscriptions")
     .update({
       status: "cancelled",
     })
-    .eq("lemon_squeezy_id", subscription.id);
+    .eq("lemon_squeezy_id", subscription.id)
+    .select();
+
+  if (error) {
+    console.error("Cancel error:", error);
+    throw error;
+  } else {
+    console.log("Successfully cancelled subscription:", data);
+  }
 }
