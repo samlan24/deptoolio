@@ -49,12 +49,10 @@ export async function POST(request: NextRequest) {
               embed: false,
               media: false,
               logo: true,
-              dark: true,
-              success_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?upgrade=success`,
-              cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/upgrade?cancelled=true`,
+              desc: true,
+              discount: true,
             },
             checkout_data: {
-              email: user.email,
               custom: {
                 user_id: user.id,
               },
@@ -62,8 +60,8 @@ export async function POST(request: NextRequest) {
             product_options: {
               name: "Pacgie Pro",
               description: "Monthly Pro subscription - 250 scans per month",
+              redirect_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?upgrade=success`,
             },
-            // Remove expires_at: null as it's not needed
           },
           relationships: {
             store: {

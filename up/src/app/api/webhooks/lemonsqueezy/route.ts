@@ -50,19 +50,26 @@ async function handleSubscriptionCreated(subscription: any, meta: any) {
 
   if (!userId) return;
 
+  // Safely handle date conversion
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return null;
+    try {
+      const date = new Date(dateString);
+      return isNaN(date.getTime()) ? null : date.toISOString().split("T")[0];
+    } catch {
+      return null;
+    }
+  };
+
   await supabase.from("subscriptions").upsert({
     user_id: userId,
     lemon_squeezy_id: subscription.id,
     status: subscription.attributes.status,
-    plan: "pro", // Add this - your table has 'plan' column
-    scan_limit: 250, // Add this - your table has 'scan_limit' column
+    plan: "pro",
+    scan_limit: 250,
     plan_type: "pro",
-    period_start: new Date(subscription.attributes.current_period_start)
-      .toISOString()
-      .split("T")[0], // Convert to date format
-    period_end: new Date(subscription.attributes.current_period_end)
-      .toISOString()
-      .split("T")[0], // Convert to date format
+    period_start: formatDate(subscription.attributes.current_period_start),
+    period_end: formatDate(subscription.attributes.current_period_end),
     current_period_start: subscription.attributes.current_period_start,
     current_period_end: subscription.attributes.current_period_end,
   });
