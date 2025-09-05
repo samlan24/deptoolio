@@ -47,12 +47,19 @@ export const metadata: Metadata = {
 
 const structuredData = {
   "@context": "https://schema.org",
-  "@type": "WebApplication",
+  "@type": "WebSite",
   name: "Pacgie",
   url: "https://deptoolio.vercel.app",
-  description: "Package file scanner for outdated and vulnerable dependencies",
-  applicationCategory: "DeveloperApplication",
-  browserRequirements: "Requires JavaScript. Requires HTML5.",
+  description: "Package file scanner for outdated and vulnerable dependencies across multiple programming languages.",
+  publisher: {
+    "@type": "Organization",
+    name: "Pacgie",
+    url: "https://deptoolio.vercel.app",
+    logo: {
+      "@type": "ImageObject",
+      url: "https://deptoolio.vercel.app/logo.png",
+    },
+  },
 };
 
 export default function RootLayout({
