@@ -52,19 +52,10 @@ const structuredData = {
   url: "https://deptoolio.vercel.app",
   description:
     "Pacgie is a package file scanner that checks for outdated and vulnerable dependencies across multiple programming languages.",
-  potentialAction: {
-    "@type": "SearchAction",
-    target: "https://deptoolio.vercel.app/search?q={search_term_string}",
-    "query-input": "required name=search_term_string",
-  },
   publisher: {
     "@type": "Organization",
     name: "Pacgie",
     url: "https://deptoolio.vercel.app",
-    logo: {
-      "@type": "ImageObject",
-      url: "https://deptoolio.vercel.app/logo.png",
-    },
   },
 };
 
