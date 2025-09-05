@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Clock, CreditCard, Settings, Trash2, RotateCcw } from "lucide-react";
+import { Clock, CreditCard, Settings } from "lucide-react";
 import {
   BarChart,
   Bar,
@@ -32,27 +32,31 @@ interface DailyScanCount {
   scan_count: number;
 }
 
-function PastScansTab() {
+interface Subscription {
+  id: string;
+  user_id: string;
+  plan: string;
+  scan_limit: number;
+  period_start: string;
+  period_end: string;
+  created_at: string;
+  updated_at: string;
+  lemon_squeezy_id?: string;
+  status?: string;
+}
+
+interface PastScansTabProps {
+  subscription: Subscription | null;
+  monthlyUsage: number;
+  loading: boolean;
+}
+
+function PastScansTab({
+  subscription,
+  monthlyUsage,
+  loading,
+}: PastScansTabProps) {
   const [dailyCounts, setDailyCounts] = useState<DailyScanCount[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [subscription, setSubscription] = useState<any>(null);
-  const [monthlyUsage, setMonthlyUsage] = useState(0);
-
-  const fetchSubscriptionAndUsage = async () => {
-    try {
-      // Fetch subscription info
-      const subResponse = await fetch("/api/subscription");
-      const subData = await subResponse.json();
-      setSubscription(subData.subscription);
-
-      // Fetch monthly usage
-      const usageResponse = await fetch("/api/monthly-usage");
-      const usageData = await usageResponse.json();
-      setMonthlyUsage(usageData.monthlyTotal || 0);
-    } catch (error) {
-      console.error("Failed to fetch subscription data:", error);
-    }
-  };
 
   const fetchDailyCounts = async () => {
     try {
@@ -65,12 +69,7 @@ function PastScansTab() {
   };
 
   useEffect(() => {
-    const loadData = async () => {
-      setLoading(true);
-      await Promise.all([fetchDailyCounts(), fetchSubscriptionAndUsage()]);
-      setLoading(false);
-    };
-    loadData();
+    fetchDailyCounts();
   }, []);
 
   const formatChartData = () => {
@@ -95,10 +94,6 @@ function PastScansTab() {
     }
     return last7Days;
   };
-  const totalScans = dailyCounts.reduce(
-    (sum, item) => sum + parseInt(item.scan_count.toString()),
-    0
-  );
 
   if (loading) {
     return (
@@ -115,38 +110,41 @@ function PastScansTab() {
     <div>
       <h2 className="text-2xl font-bold mb-6 text-white">Past Scans</h2>
 
-      {/* Total Scans Summary */}
+      {/* Monthly Usage Summary */}
       <div className="bg-gray-800 rounded-lg p-6 mb-6">
         <h3 className="text-lg font-semibold text-white mb-2">Monthly Usage</h3>
         <div className="flex items-baseline gap-2">
           <p className="text-3xl font-bold text-blue-400">{monthlyUsage}</p>
           <p className="text-xl text-gray-400">
-            / {subscription?.scan_limit || 10}
+            / {subscription?.scan_limit ?? 10}
           </p>
         </div>
         <div className="mt-2 w-full bg-gray-700 rounded-full h-2">
           <div
             className={`h-2 rounded-full transition-all ${
-              monthlyUsage >= (subscription?.scan_limit || 10)
+              monthlyUsage >= (subscription?.scan_limit ?? 10)
                 ? "bg-red-500"
-                : monthlyUsage >= (subscription?.scan_limit || 10) * 0.8
+                : monthlyUsage >= (subscription?.scan_limit ?? 10) * 0.8
                 ? "bg-yellow-500"
                 : "bg-blue-500"
             }`}
             style={{
-              width: `${Math.min(
-                (monthlyUsage / (subscription?.scan_limit || 10)) * 100,
-                100
-              )}%`,
+              width: `${
+                Math.min(
+                  (monthlyUsage / (subscription?.scan_limit ?? 10)) * 100,
+                  100
+                ) ?? 0
+              }%`,
             }}
           ></div>
         </div>
         <p className="text-sm text-gray-400 mt-1">
-          {subscription?.scan_limit - monthlyUsage} scans remaining this month
+          {(subscription?.scan_limit ?? 10) - monthlyUsage} scans remaining
+          this month
         </p>
       </div>
 
-      {/* Daily Scan Chart */}
+      {/* Daily Scan Activity Chart */}
       <div className="bg-gray-800 rounded-lg p-6">
         <h3 className="text-lg font-semibold text-white mb-4">
           Daily Scan Activity (Last 7 Days)
@@ -178,19 +176,60 @@ function PastScansTab() {
   );
 }
 
-function BillingTab() {
+interface BillingTabProps {
+  subscription: Subscription | null;
+  monthlyUsage: number;
+  loading: boolean;
+}
+
+function BillingTab({ subscription, loading }: BillingTabProps) {
+  if (loading) {
+    return (
+      <div>
+        <h2 className="text-2xl font-bold mb-6 text-white">Billing</h2>
+        <div className="bg-gray-800 rounded-lg p-6">
+          <p className="text-gray-400">Loading billing information...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!subscription) {
+    return (
+      <div>
+        <h2 className="text-2xl font-bold mb-6 text-white">Billing</h2>
+        <div className="bg-gray-800 rounded-lg p-6">
+          <p className="text-white font-medium">No active subscription</p>
+          <Link href="/upgrade">
+            <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
+              Upgrade to Pro
+            </button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const { plan, scan_limit, status, period_end } = subscription;
+
   return (
     <div>
       <h2 className="text-2xl font-bold mb-6 text-white">Billing</h2>
       <div className="bg-gray-800 rounded-lg p-6">
         <div className="mb-4">
-          <p className="text-white font-medium">Current Plan: Free Tier</p>
-          <p className="text-gray-400 text-sm">10 manual uploads per month</p>
+          <p className="text-white font-medium">
+            Current Plan: {plan.charAt(0).toUpperCase() + plan.slice(1)}
+          </p>
+          <p className="text-gray-400 text-sm">{scan_limit} scans per month</p>
+          <p className="text-gray-400 text-sm">Status: {status ?? "Unknown"}</p>
+          <p className="text-gray-400 text-sm">
+            Current period ends: {new Date(period_end).toLocaleDateString()}
+          </p>
         </div>
-         <Link href="/upgrade">
-        <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
-          Upgrade to Pro
-        </button>
+        <Link href="/upgrade">
+          <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
+            Upgrade Plan
+          </button>
         </Link>
       </div>
     </div>
@@ -223,6 +262,30 @@ function AccountTab({ user }: { user: any }) {
 
 export default function DashboardClient({ user }: DashboardClientProps) {
   const [activeTab, setActiveTab] = useState("scans");
+  const [subscription, setSubscription] = useState<Subscription | null>(null);
+  const [monthlyUsage, setMonthlyUsage] = useState(0);
+  const [loadingSubscription, setLoadingSubscription] = useState(true);
+
+  useEffect(() => {
+    const fetchSubscriptionAndUsage = async () => {
+      try {
+        setLoadingSubscription(true);
+        const subResponse = await fetch("/api/subscription");
+        const subData = await subResponse.json();
+        setSubscription(subData.subscription ?? null);
+
+        const usageResponse = await fetch("/api/monthly-usage");
+        const usageData = await usageResponse.json();
+        setMonthlyUsage(usageData.monthlyTotal ?? 0);
+
+        setLoadingSubscription(false);
+      } catch (error) {
+        console.error("Failed to fetch subscription data:", error);
+        setLoadingSubscription(false);
+      }
+    };
+    fetchSubscriptionAndUsage();
+  }, [user?.id]);
 
   const tabs = [
     { id: "scans", label: "Past Scans", icon: Clock },
@@ -257,8 +320,20 @@ export default function DashboardClient({ user }: DashboardClientProps) {
 
       {/* Main Content */}
       <div className="flex-1">
-        {activeTab === "scans" && <PastScansTab />}
-        {activeTab === "billing" && <BillingTab />}
+        {activeTab === "scans" && (
+          <PastScansTab
+            subscription={subscription}
+            monthlyUsage={monthlyUsage}
+            loading={loadingSubscription}
+          />
+        )}
+        {activeTab === "billing" && (
+          <BillingTab
+            subscription={subscription}
+            monthlyUsage={monthlyUsage}
+            loading={loadingSubscription}
+          />
+        )}
         {activeTab === "account" && <AccountTab user={user} />}
       </div>
     </div>
