@@ -89,7 +89,7 @@ async function handleSubscriptionCreated(subscription: any, meta: any) {
   // Use lemon_squeezy_id for conflict resolution since it has a unique constraint
   const { data, error } = await supabase
     .from("subscriptions")
-    .upsert(insertData, { onConflict: "lemon_squeezy_id" })
+    .upsert(insertData, { onConflict: "user_id" })
     .select();
 
   if (error) {
