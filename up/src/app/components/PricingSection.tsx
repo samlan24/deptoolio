@@ -125,14 +125,16 @@ const PricingSection = ({ id }: PricingSectionProps) => {
                     </Button>
                   </Link>
                 ) : (
-                  <Button
-                    className={`w-full ${
-                      plan.popular ? "btn-hero" : "btn-outline-hero"
-                    }`}
-                    size="lg"
-                  >
-                    {plan.cta}
-                  </Button>
+                  <Link href="/upgrade">
+                    <Button
+                      className={`w-full ${
+                        plan.popular ? "btn-hero" : "btn-outline-hero"
+                      }`}
+                      size="lg"
+                    >
+                      {plan.cta}
+                    </Button>
+                  </Link>
                 )}
               </Card>
             ))}
