@@ -88,7 +88,7 @@ const ProductIntroSection = ({ id }: ProductIntroSectionProps) => {
           <div className="text-center">
             <Link href="/checks" className="block">
             <Button size="lg" className="btn-hero">
-              Start Free Analysis
+              Start Your Free Analysis
             </Button>
             </Link>
           </div>
