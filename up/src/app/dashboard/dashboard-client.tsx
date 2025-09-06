@@ -381,11 +381,13 @@ function BillingTab({ subscription, loading, session }: BillingTabProps) {
 
               const data = await response.json();
               console.log("API response:", data);
+              console.log("Response status:", response.status);
 
               if (data.url) {
                 window.open(data.url, "_blank");
               } else {
-                alert("Unable to open subscription portal");
+                console.log("No URL in response:", data);
+                alert(`API Error: ${data.error || 'Unknown error'}`);
               }
             } catch (error) {
               console.error("Portal error:", error);
