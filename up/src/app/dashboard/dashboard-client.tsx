@@ -265,17 +265,17 @@ function BillingTab({ subscription, loading, session }: BillingTabProps) {
             onClick={async () => {
               try {
                 const {
-                  data: { session },
+                  data: { session: currentSession },
                 } = await supabase.auth.getSession();
 
-                if (!session) {
-                  alert("Please log in to resume subscription");
+                if (!currentSession) {
+                  alert("Please log in to manage your subscription");
                   return;
                 }
 
                 const response = await fetch("/api/customer-portal", {
                   headers: {
-                    Authorization: `Bearer ${session.access_token}`,
+                    Authorization: `Bearer ${currentSession.access_token}`,
                   },
                 });
 
@@ -387,7 +387,7 @@ function BillingTab({ subscription, loading, session }: BillingTabProps) {
                 window.open(data.url, "_blank");
               } else {
                 console.log("No URL in response:", data);
-                alert(`API Error: ${data.error || 'Unknown error'}`);
+                alert(`API Error: ${data.error || "Unknown error"}`);
               }
             } catch (error) {
               console.error("Portal error:", error);
