@@ -12,17 +12,14 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-import { createClient } from "@supabase/supabase-js";
+import { createBrowserClient } from "@supabase/ssr";
 
-// Add this at the top of your DashboardClient component
-const supabase = createClient(
+const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
-
 interface DashboardClientProps {
   user: any;
-  session: any;
 }
 
 interface ScanHistoryItem {
@@ -189,10 +186,39 @@ interface BillingTabProps {
   subscription: Subscription | null;
   monthlyUsage: number;
   loading: boolean;
-  session: any;
 }
 
-function BillingTab({ subscription, loading, session }: BillingTabProps) {
+function BillingTab({ subscription, loading }: BillingTabProps) {
+  const handleSubscriptionAction = async (actionType: string) => {
+    try {
+      // Get fresh session client-side
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session?.access_token) {
+        alert("Please log in to manage your subscription");
+        return;
+      }
+
+      const response = await fetch("/api/customer-portal", {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (data.url) {
+        window.open(data.url, "_blank");
+      } else {
+        alert(`API Error: ${data.error || "Unknown error"}`);
+      }
+    } catch (error) {
+      console.error("Portal error:", error);
+      alert("Unable to open subscription portal");
+    }
+  };
   if (loading) {
     return (
       <div>
@@ -262,31 +288,7 @@ function BillingTab({ subscription, loading, session }: BillingTabProps) {
             {periodEndDate.toLocaleDateString()}
           </div>
           <button
-            onClick={async () => {
-              try {
-                if (!session?.access_token) {
-                  alert("Please log in to manage your subscription");
-                  return;
-                }
-
-                const response = await fetch("/api/customer-portal", {
-                  headers: {
-                    Authorization: `Bearer ${session.access_token}`,
-                  },
-                });
-
-                const data = await response.json();
-
-                if (data.url) {
-                  window.open(data.url, "_blank");
-                } else {
-                  alert(`API Error: ${data.error || "Unknown error"}`);
-                }
-              } catch (error) {
-                console.error("Portal error:", error);
-                alert("Unable to open subscription portal");
-              }
-            }}
+            onClick={() => handleSubscriptionAction("resume")}
             className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm"
           >
             Resume Subscription
@@ -298,31 +300,7 @@ function BillingTab({ subscription, loading, session }: BillingTabProps) {
     if (status === "past_due") {
       return (
         <button
-          onClick={async () => {
-            try {
-              if (!session?.access_token) {
-                alert("Please log in to manage your subscription");
-                return;
-              }
-
-              const response = await fetch("/api/customer-portal", {
-                headers: {
-                  Authorization: `Bearer ${session.access_token}`,
-                },
-              });
-
-              const data = await response.json();
-
-              if (data.url) {
-                window.open(data.url, "_blank");
-              } else {
-                alert(`API Error: ${data.error || "Unknown error"}`);
-              }
-            } catch (error) {
-              console.error("Portal error:", error);
-              alert("Unable to open subscription portal");
-            }
-          }}
+          onClick={() => handleSubscriptionAction("update-payment")}
           className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded"
         >
           Update Payment Method
@@ -356,31 +334,7 @@ function BillingTab({ subscription, loading, session }: BillingTabProps) {
           You're on the Pro plan - enjoy unlimited features!
         </div>
         <button
-          onClick={async () => {
-            try {
-              if (!session?.access_token) {
-                alert("Please log in to manage your subscription");
-                return;
-              }
-
-              const response = await fetch("/api/customer-portal", {
-                headers: {
-                  Authorization: `Bearer ${session.access_token}`,
-                },
-              });
-
-              const data = await response.json();
-
-              if (data.url) {
-                window.open(data.url, "_blank");
-              } else {
-                alert(`API Error: ${data.error || "Unknown error"}`);
-              }
-            } catch (error) {
-              console.error("Portal error:", error);
-              alert("Unable to open subscription portal");
-            }
-          }}
+          onClick={() => handleSubscriptionAction("manage")}
           className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded text-sm"
         >
           Manage Subscription
@@ -450,10 +404,7 @@ function AccountTab({ user }: { user: any }) {
   );
 }
 
-export default function DashboardClient({
-  user,
-  session,
-}: DashboardClientProps) {
+export default function DashboardClient({ user }: DashboardClientProps) {
   const [activeTab, setActiveTab] = useState("scans");
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [monthlyUsage, setMonthlyUsage] = useState(0);
@@ -538,7 +489,6 @@ export default function DashboardClient({
             subscription={subscription}
             monthlyUsage={monthlyUsage}
             loading={loadingSubscription}
-            session={session}
           />
         )}
         {activeTab === "account" && <AccountTab user={user} />}
