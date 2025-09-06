@@ -201,7 +201,7 @@ function BillingTab({ subscription, loading }: BillingTabProps) {
         <div className="bg-gray-800 rounded-lg p-6">
           <p className="text-white font-medium">No active subscription</p>
           <Link href="/upgrade">
-            <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
+            <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded mt-4">
               Upgrade to Pro
             </button>
           </Link>
@@ -211,32 +211,121 @@ function BillingTab({ subscription, loading }: BillingTabProps) {
   }
 
   const { plan, scan_limit, status, period_end } = subscription;
+  const periodEndDate = new Date(period_end);
+  const now = new Date();
+  const hasActiveAccess =
+    status === "active" ||
+    (status === "cancelled" && now <= periodEndDate) ||
+    status === "past_due";
+
+  // Status display logic
+  const getStatusDisplay = () => {
+    switch (status) {
+      case "active":
+        return { text: "Active", color: "text-green-400" };
+      case "cancelled":
+        return {
+          text: "Cancelled (Active until period end)",
+          color: "text-yellow-400",
+        };
+      case "past_due":
+        return {
+          text: "Payment Failed - Please Update",
+          color: "text-red-400",
+        };
+      case "expired":
+        return { text: "Expired", color: "text-red-400" };
+      default:
+        return { text: status ?? "Unknown", color: "text-gray-400" };
+    }
+  };
+
+  const statusDisplay = getStatusDisplay();
+
+  // Button logic
+  const renderActionButton = () => {
+    if (status === "cancelled") {
+      return (
+        <div className="bg-yellow-100 border border-yellow-300 text-yellow-800 px-4 py-2 rounded text-sm">
+          Your subscription is cancelled but remains active until{" "}
+          {periodEndDate.toLocaleDateString()}
+        </div>
+      );
+    }
+
+    if (status === "past_due") {
+      return (
+        <button className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded">
+          Update Payment Method
+        </button>
+      );
+    }
+
+    if (status === "expired" || !hasActiveAccess) {
+      return (
+        <Link href="/upgrade">
+          <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
+            Reactivate Subscription
+          </button>
+        </Link>
+      );
+    }
+
+    if (plan === "free") {
+      return (
+        <Link href="/upgrade">
+          <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
+            Upgrade to Pro
+          </button>
+        </Link>
+      );
+    }
+
+    // Pro and active
+    return (
+      <div className="space-y-2">
+        <div className="bg-green-100 border border-green-300 text-green-800 px-4 py-2 rounded text-sm">
+          You're on the Pro plan - enjoy unlimited features!
+        </div>
+        <button className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded text-sm">
+          Manage Subscription
+        </button>
+      </div>
+    );
+  };
 
   return (
     <div>
       <h2 className="text-2xl font-bold mb-6 text-white">Billing</h2>
       <div className="bg-gray-800 rounded-lg p-6">
-        <div className="mb-4">
+        <div className="mb-6">
           <p className="text-white font-medium">
             Current Plan: {plan.charAt(0).toUpperCase() + plan.slice(1)}
           </p>
           <p className="text-gray-400 text-sm">{scan_limit} scans per month</p>
-          <p className="text-gray-400 text-sm">Status: {status ?? "Unknown"}</p>
-          <p className="text-gray-400 text-sm">
-            Current period ends: {new Date(period_end).toLocaleDateString()}
+          <p className={`text-sm ${statusDisplay.color}`}>
+            Status: {statusDisplay.text}
           </p>
+          <p className="text-gray-400 text-sm">
+            Current period ends: {periodEndDate.toLocaleDateString()}
+          </p>
+
+          {/* Days remaining indicator */}
+          {hasActiveAccess && (
+            <p className="text-gray-400 text-sm">
+              {Math.max(
+                0,
+                Math.ceil(
+                  (periodEndDate.getTime() - now.getTime()) /
+                    (1000 * 60 * 60 * 24)
+                )
+              )}{" "}
+              days remaining
+            </p>
+          )}
         </div>
-        {plan === "free" ? (
-          <Link href="/upgrade">
-            <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
-              Upgrade to Pro
-            </button>
-          </Link>
-        ) : (
-          <div className="bg-green-100 border border-green-300 text-green-800 px-4 py-2 rounded text-sm">
-            You're on the Pro plan - enjoy unlimited features!
-          </div>
-        )}
+
+        {renderActionButton()}
       </div>
     </div>
   );
