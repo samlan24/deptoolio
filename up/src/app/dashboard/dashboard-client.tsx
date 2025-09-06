@@ -264,18 +264,14 @@ function BillingTab({ subscription, loading, session }: BillingTabProps) {
           <button
             onClick={async () => {
               try {
-                const {
-                  data: { session: currentSession },
-                } = await supabase.auth.getSession();
-
-                if (!currentSession) {
+                if (!session?.access_token) {
                   alert("Please log in to manage your subscription");
                   return;
                 }
 
                 const response = await fetch("/api/customer-portal", {
                   headers: {
-                    Authorization: `Bearer ${currentSession.access_token}`,
+                    Authorization: `Bearer ${session.access_token}`,
                   },
                 });
 
@@ -284,7 +280,7 @@ function BillingTab({ subscription, loading, session }: BillingTabProps) {
                 if (data.url) {
                   window.open(data.url, "_blank");
                 } else {
-                  alert("Unable to open subscription portal");
+                  alert(`API Error: ${data.error || "Unknown error"}`);
                 }
               } catch (error) {
                 console.error("Portal error:", error);
@@ -304,18 +300,14 @@ function BillingTab({ subscription, loading, session }: BillingTabProps) {
         <button
           onClick={async () => {
             try {
-              const {
-                data: { session: currentSession },
-              } = await supabase.auth.getSession();
-
-              if (!currentSession) {
-                alert("Please log in to update payment");
+              if (!session?.access_token) {
+                alert("Please log in to manage your subscription");
                 return;
               }
 
               const response = await fetch("/api/customer-portal", {
                 headers: {
-                  Authorization: `Bearer ${currentSession.access_token}`,
+                  Authorization: `Bearer ${session.access_token}`,
                 },
               });
 
@@ -324,11 +316,11 @@ function BillingTab({ subscription, loading, session }: BillingTabProps) {
               if (data.url) {
                 window.open(data.url, "_blank");
               } else {
-                alert("Unable to open payment portal");
+                alert(`API Error: ${data.error || "Unknown error"}`);
               }
             } catch (error) {
               console.error("Portal error:", error);
-              alert("Unable to open payment portal");
+              alert("Unable to open subscription portal");
             }
           }}
           className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded"
@@ -366,8 +358,6 @@ function BillingTab({ subscription, loading, session }: BillingTabProps) {
         <button
           onClick={async () => {
             try {
-              console.log("Using server session:", !!session);
-
               if (!session?.access_token) {
                 alert("Please log in to manage your subscription");
                 return;
@@ -380,13 +370,10 @@ function BillingTab({ subscription, loading, session }: BillingTabProps) {
               });
 
               const data = await response.json();
-              console.log("API response:", data);
-              console.log("Response status:", response.status);
 
               if (data.url) {
                 window.open(data.url, "_blank");
               } else {
-                console.log("No URL in response:", data);
                 alert(`API Error: ${data.error || "Unknown error"}`);
               }
             } catch (error) {
@@ -492,6 +479,19 @@ export default function DashboardClient({
     };
     fetchSubscriptionAndUsage();
   }, [user?.id]);
+
+  useEffect(() => {
+    const initializeAuth = async () => {
+      // Force a session refresh on component mount
+      try {
+        await supabase.auth.refreshSession();
+      } catch (error) {
+        console.error("Failed to refresh session on mount:", error);
+      }
+    };
+
+    initializeAuth();
+  });
 
   const tabs = [
     { id: "scans", label: "Past Scans", icon: Clock },
