@@ -23,7 +23,7 @@ const PricingSection = ({ id }: PricingSectionProps) => {
     {
       name: "Pro",
       subtitle: "For Active Developers",
-      price: "$7",
+      price: "$9.99",
       period: "per month",
       description: "More scans, same simple workflow",
       icon: Zap,

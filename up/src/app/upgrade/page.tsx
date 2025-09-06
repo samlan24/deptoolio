@@ -238,7 +238,7 @@ export default function UpgradePage() {
                   Processing...
                 </div>
               ) : (
-                "Upgrade Now - $10/month"
+                "Upgrade Now - $9.99/month"
               )}
             </Button>
             <p className="text-sm text-muted-foreground mt-3">
