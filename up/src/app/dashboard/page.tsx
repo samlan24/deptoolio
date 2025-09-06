@@ -26,7 +26,7 @@ async function createClient() {
 export default async function Dashboard() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  const { data: { session } } = await supabase.auth.getSession() // Add this line
+
 
   return (
     <div className="min-h-screen pt-20 max-w-7xl mx-auto px-6">
@@ -35,7 +35,7 @@ export default async function Dashboard() {
         <p className="text-gray-400">Welcome back, {user?.email}</p>
       </div>
 
-      <DashboardClient user={user} session={session} />
+      <DashboardClient user={user} session={null} />
     </div>
   )
 }

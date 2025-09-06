@@ -305,17 +305,17 @@ function BillingTab({ subscription, loading, session }: BillingTabProps) {
           onClick={async () => {
             try {
               const {
-                data: { session },
+                data: { session: currentSession },
               } = await supabase.auth.getSession();
 
-              if (!session) {
+              if (!currentSession) {
                 alert("Please log in to update payment");
                 return;
               }
 
               const response = await fetch("/api/customer-portal", {
                 headers: {
-                  Authorization: `Bearer ${session.access_token}`,
+                  Authorization: `Bearer ${currentSession.access_token}`,
                 },
               });
 
