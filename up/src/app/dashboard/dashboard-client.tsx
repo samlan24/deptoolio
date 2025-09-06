@@ -12,6 +12,14 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
+import { createClient } from "@supabase/supabase-js";
+
+// Add this at the top of your DashboardClient component
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
+
 interface DashboardClientProps {
   user: any;
 }
@@ -246,16 +254,83 @@ function BillingTab({ subscription, loading }: BillingTabProps) {
   const renderActionButton = () => {
     if (status === "cancelled") {
       return (
-        <div className="bg-yellow-100 border border-yellow-300 text-yellow-800 px-4 py-2 rounded text-sm">
-          Your subscription is cancelled but remains active until{" "}
-          {periodEndDate.toLocaleDateString()}
+        <div className="space-y-2">
+          <div className="bg-yellow-100 border border-yellow-300 text-yellow-800 px-4 py-2 rounded text-sm">
+            Your subscription is cancelled but remains active until{" "}
+            {periodEndDate.toLocaleDateString()}
+          </div>
+          <button
+            onClick={async () => {
+              try {
+                const {
+                  data: { session },
+                } = await supabase.auth.getSession();
+
+                if (!session) {
+                  alert("Please log in to resume subscription");
+                  return;
+                }
+
+                const response = await fetch("/api/customer-portal", {
+                  headers: {
+                    Authorization: `Bearer ${session.access_token}`,
+                  },
+                });
+
+                const data = await response.json();
+
+                if (data.url) {
+                  window.open(data.url, "_blank");
+                } else {
+                  alert("Unable to open subscription portal");
+                }
+              } catch (error) {
+                console.error("Portal error:", error);
+                alert("Unable to open subscription portal");
+              }
+            }}
+            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm"
+          >
+            Resume Subscription
+          </button>
         </div>
       );
     }
 
     if (status === "past_due") {
       return (
-        <button className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded">
+        <button
+          onClick={async () => {
+            try {
+              const {
+                data: { session },
+              } = await supabase.auth.getSession();
+
+              if (!session) {
+                alert("Please log in to update payment");
+                return;
+              }
+
+              const response = await fetch("/api/customer-portal", {
+                headers: {
+                  Authorization: `Bearer ${session.access_token}`,
+                },
+              });
+
+              const data = await response.json();
+
+              if (data.url) {
+                window.open(data.url, "_blank");
+              } else {
+                alert("Unable to open payment portal");
+              }
+            } catch (error) {
+              console.error("Portal error:", error);
+              alert("Unable to open payment portal");
+            }
+          }}
+          className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded"
+        >
           Update Payment Method
         </button>
       );
@@ -282,12 +357,45 @@ function BillingTab({ subscription, loading }: BillingTabProps) {
     }
 
     // Pro and active
+    // Pro and active
     return (
       <div className="space-y-2">
         <div className="bg-green-100 border border-green-300 text-green-800 px-4 py-2 rounded text-sm">
           You're on the Pro plan - enjoy unlimited features!
         </div>
-        <button className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded text-sm">
+        <button
+          onClick={async () => {
+            try {
+              // Get the current session
+              const {
+                data: { session },
+              } = await supabase.auth.getSession();
+
+              if (!session) {
+                alert("Please log in to manage your subscription");
+                return;
+              }
+
+              const response = await fetch("/api/customer-portal", {
+                headers: {
+                  Authorization: `Bearer ${session.access_token}`,
+                },
+              });
+
+              const data = await response.json();
+
+              if (data.url) {
+                window.open(data.url, "_blank");
+              } else {
+                alert("Unable to open subscription portal");
+              }
+            } catch (error) {
+              console.error("Portal error:", error);
+              alert("Unable to open subscription portal");
+            }
+          }}
+          className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded text-sm"
+        >
           Manage Subscription
         </button>
       </div>

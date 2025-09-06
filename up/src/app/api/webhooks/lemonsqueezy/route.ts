@@ -38,6 +38,20 @@ export async function POST(request: NextRequest) {
       case "subscription_cancelled":
         await handleSubscriptionCancelled(subscription);
         break;
+      case "subscription_resumed":
+        await handleSubscriptionResumed(subscription);
+        break;
+      case "subscription_expired":
+        await handleSubscriptionExpired(subscription);
+        break;
+      case "subscription_payment_success":
+        await handlePaymentSuccess(subscription);
+        break;
+      case "subscription_payment_failed":
+        await handlePaymentFailed(subscription);
+        break;
+      default:
+        console.log(`Unhandled event type: ${eventType}`);
     }
 
     return NextResponse.json({ received: true });
@@ -86,7 +100,7 @@ async function handleSubscriptionCreated(subscription: any, meta: any) {
 
   console.log("Attempting to insert:", insertData);
 
-  // Use lemon_squeezy_id for conflict resolution since it has a unique constraint
+  // Use user_id for conflict resolution since it has a unique constraint
   const { data, error } = await supabase
     .from("subscriptions")
     .upsert(insertData, { onConflict: "user_id" })
@@ -99,14 +113,24 @@ async function handleSubscriptionCreated(subscription: any, meta: any) {
     console.log("Successfully inserted/updated subscription:", data);
   }
 }
+
 async function handleSubscriptionUpdated(subscription: any) {
   console.log("Updating subscription:", subscription.id);
 
+  // Calculate new period end from renews_at if it exists
+  const renewsAt = subscription.attributes.renews_at;
+  const updateData: any = {
+    status: subscription.attributes.status,
+  };
+
+  // Update period_end if we have a new renews_at date
+  if (renewsAt) {
+    updateData.period_end = new Date(renewsAt).toISOString().split("T")[0];
+  }
+
   const { data, error } = await supabase
     .from("subscriptions")
-    .update({
-      status: subscription.attributes.status,
-    })
+    .update(updateData)
     .eq("lemon_squeezy_id", subscription.id)
     .select();
 
@@ -121,10 +145,13 @@ async function handleSubscriptionUpdated(subscription: any) {
 async function handleSubscriptionCancelled(subscription: any) {
   console.log("Cancelling subscription:", subscription.id);
 
+  // When cancelled, user keeps access until period_end
+  // Don't change the period_end, just update status
   const { data, error } = await supabase
     .from("subscriptions")
     .update({
       status: "cancelled",
+      // Keep existing period_end - user has access until then
     })
     .eq("lemon_squeezy_id", subscription.id)
     .select();
@@ -134,5 +161,95 @@ async function handleSubscriptionCancelled(subscription: any) {
     throw error;
   } else {
     console.log("Successfully cancelled subscription:", data);
+  }
+}
+
+async function handleSubscriptionResumed(subscription: any) {
+  console.log("Resuming subscription:", subscription.id);
+
+  const renewsAt = new Date(subscription.attributes.renews_at);
+  const periodEnd = renewsAt.toISOString().split("T")[0];
+
+  const { data, error } = await supabase
+    .from("subscriptions")
+    .update({
+      status: "active",
+      period_end: periodEnd,
+    })
+    .eq("lemon_squeezy_id", subscription.id)
+    .select();
+
+  if (error) {
+    console.error("Resume error:", error);
+    throw error;
+  } else {
+    console.log("Successfully resumed subscription:", data);
+  }
+}
+
+async function handleSubscriptionExpired(subscription: any) {
+  console.log("Expiring subscription:", subscription.id);
+
+  const { data, error } = await supabase
+    .from("subscriptions")
+    .update({
+      status: "expired",
+      // period_end stays the same - shows when it actually expired
+    })
+    .eq("lemon_squeezy_id", subscription.id)
+    .select();
+
+  if (error) {
+    console.error("Expire error:", error);
+    throw error;
+  } else {
+    console.log("Successfully expired subscription:", data);
+  }
+}
+
+async function handlePaymentSuccess(subscription: any) {
+  console.log("Payment successful for subscription:", subscription.id);
+
+  // Successful payment - extend the period
+  const renewsAt = new Date(subscription.attributes.renews_at);
+  const periodEnd = renewsAt.toISOString().split("T")[0];
+
+  const { data, error } = await supabase
+    .from("subscriptions")
+    .update({
+      status: "active",
+      period_end: periodEnd,
+    })
+    .eq("lemon_squeezy_id", subscription.id)
+    .select();
+
+  if (error) {
+    console.error("Payment success update error:", error);
+    throw error;
+  } else {
+    console.log("Successfully updated subscription after payment:", data);
+  }
+}
+
+async function handlePaymentFailed(subscription: any) {
+  console.log("Payment failed for subscription:", subscription.id);
+
+  const { data, error } = await supabase
+    .from("subscriptions")
+    .update({
+      status: "past_due",
+      // Don't change period_end - user might still have grace period access
+    })
+    .eq("lemon_squeezy_id", subscription.id)
+    .select();
+
+  if (error) {
+    console.error("Payment failed update error:", error);
+    throw error;
+  } else {
+    console.log(
+      "Successfully updated subscription after failed payment:",
+      data
+    );
   }
 }
