@@ -139,8 +139,8 @@ function PastScansTab({
           ></div>
         </div>
         <p className="text-sm text-gray-400 mt-1">
-          {(subscription?.scan_limit ?? 10) - monthlyUsage} scans remaining
-          this month
+          {(subscription?.scan_limit ?? 10) - monthlyUsage} scans remaining this
+          month
         </p>
       </div>
 
@@ -226,11 +226,17 @@ function BillingTab({ subscription, loading }: BillingTabProps) {
             Current period ends: {new Date(period_end).toLocaleDateString()}
           </p>
         </div>
-        <Link href="/upgrade">
-          <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
-            Upgrade Plan
-          </button>
-        </Link>
+        {plan === "free" ? (
+          <Link href="/upgrade">
+            <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
+              Upgrade to Pro
+            </button>
+          </Link>
+        ) : (
+          <div className="bg-green-100 border border-green-300 text-green-800 px-4 py-2 rounded text-sm">
+            You're on the Pro plan - enjoy unlimited features!
+          </div>
+        )}
       </div>
     </div>
   );
