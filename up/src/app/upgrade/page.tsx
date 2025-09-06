@@ -113,7 +113,7 @@ export default function UpgradePage() {
           {/* Pricing Card */}
           <Card className="p-8 mb-12 text-center border-2 border-primary/20 bg-gradient-to-b from-background to-primary/5">
             <div className="mb-6">
-              <div className="text-5xl font-bold text-foreground mb-2">$10</div>
+              <div className="text-5xl font-bold text-foreground mb-2">$9.99</div>
               <div className="text-muted-foreground">per month</div>
               <div className="text-sm text-primary font-medium mt-2">
                 Cancel anytime
