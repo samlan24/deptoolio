@@ -22,6 +22,7 @@ const supabase = createClient(
 
 interface DashboardClientProps {
   user: any;
+  session: any;
 }
 
 interface ScanHistoryItem {
@@ -188,9 +189,10 @@ interface BillingTabProps {
   subscription: Subscription | null;
   monthlyUsage: number;
   loading: boolean;
+  session: any;
 }
 
-function BillingTab({ subscription, loading }: BillingTabProps) {
+function BillingTab({ subscription, loading, session }: BillingTabProps) {
   if (loading) {
     return (
       <div>
@@ -355,8 +357,6 @@ function BillingTab({ subscription, loading }: BillingTabProps) {
         </Link>
       );
     }
-
-    // Pro and active
     // Pro and active
     return (
       <div className="space-y-2">
@@ -366,12 +366,9 @@ function BillingTab({ subscription, loading }: BillingTabProps) {
         <button
           onClick={async () => {
             try {
-              // Get the current session
-              const {
-                data: { session },
-              } = await supabase.auth.getSession();
+              console.log("Using server session:", !!session);
 
-              if (!session) {
+              if (!session?.access_token) {
                 alert("Please log in to manage your subscription");
                 return;
               }
@@ -383,6 +380,7 @@ function BillingTab({ subscription, loading }: BillingTabProps) {
               });
 
               const data = await response.json();
+              console.log("API response:", data);
 
               if (data.url) {
                 window.open(data.url, "_blank");
@@ -463,7 +461,10 @@ function AccountTab({ user }: { user: any }) {
   );
 }
 
-export default function DashboardClient({ user }: DashboardClientProps) {
+export default function DashboardClient({
+  user,
+  session,
+}: DashboardClientProps) {
   const [activeTab, setActiveTab] = useState("scans");
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [monthlyUsage, setMonthlyUsage] = useState(0);
@@ -535,6 +536,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
             subscription={subscription}
             monthlyUsage={monthlyUsage}
             loading={loadingSubscription}
+            session={session}
           />
         )}
         {activeTab === "account" && <AccountTab user={user} />}
