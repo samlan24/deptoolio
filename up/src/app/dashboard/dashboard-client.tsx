@@ -380,7 +380,86 @@ function BillingTab({ subscription, loading }: BillingTabProps) {
   );
 }
 
-function AccountTab({ user }: { user: any }) {
+function AccountTab({ user, subscription }: { user: any; subscription: Subscription | null }) {
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDeleteAccount = async () => {
+    try {
+      setIsDeleting(true);
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (!session?.access_token) {
+        alert("Please log in to delete your account");
+        return;
+      }
+
+      const response = await fetch("/api/delete-account", {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (response.ok) {
+        await supabase.auth.signOut();
+        window.location.href = "/";
+      } else {
+        const data = await response.json();
+        alert(`Error: ${data.error || "Failed to delete account"}`);
+      }
+    } catch (error) {
+      console.error("Delete account error:", error);
+      alert("Unable to delete account");
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteDialog(false);
+    }
+  };
+
+  const canDeleteAccount = () => {
+    if (!subscription) return true;
+
+    const now = new Date();
+    const periodEnd = new Date(subscription.period_end);
+
+    // Can delete if subscription is expired or not active
+    return subscription.status === 'expired' ||
+           (subscription.status === 'cancelled' && now > periodEnd) ||
+           subscription.plan === 'free';
+  };
+
+  const handleSubscriptionAction = async (actionType: string) => {
+    try {
+      // Get fresh session client-side
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session?.access_token) {
+        alert("Please log in to manage your subscription");
+        return;
+      }
+
+      const response = await fetch("/api/customer-portal", {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (data.url) {
+        window.open(data.url, "_blank");
+      } else {
+        alert(`API Error: ${data.error || "Unknown error"}`);
+      }
+    } catch (error) {
+      console.error("Portal error:", error);
+      alert("Unable to open subscription portal");
+    }
+  };
+
   return (
     <div>
       <h2 className="text-2xl font-bold mb-6 text-white">Account Settings</h2>
@@ -399,7 +478,67 @@ function AccountTab({ user }: { user: any }) {
             </p>
           </div>
         </div>
+
+        {/* Delete Account Section */}
+        <div className="mt-8 pt-6 border-t border-gray-700">
+          <h3 className="text-lg font-semibold text-red-400 mb-4">Danger Zone</h3>
+
+          {!canDeleteAccount() ? (
+            <div className="bg-red-900/20 border border-red-700 rounded-lg p-4">
+              <p className="text-red-300 mb-3">
+                You must cancel your subscription before deleting your account.
+              </p>
+              <button
+                onClick={() => handleSubscriptionAction("manage")}
+                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded text-sm"
+              >
+                Manage Subscription
+              </button>
+            </div>
+          ) : (
+            <div className="bg-red-900/20 border border-red-700 rounded-lg p-4">
+              <p className="text-red-300 mb-3">
+                This will permanently delete your account and all associated data. This action cannot be undone.
+              </p>
+              <button
+                onClick={() => setShowDeleteDialog(true)}
+                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded text-sm"
+              >
+                Delete Account
+              </button>
+            </div>
+          )}
+        </div>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      {showDeleteDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-gray-800 rounded-lg p-6 max-w-md mx-4">
+            <h3 className="text-lg font-semibold text-white mb-4">Confirm Account Deletion</h3>
+            <p className="text-gray-300 mb-6">
+              Are you sure you want to delete your account? This action is permanent and cannot be undone.
+              All your data will be permanently removed.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDeleteDialog(false)}
+                className="flex-1 bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded"
+                disabled={isDeleting}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteAccount}
+                disabled={isDeleting}
+                className="flex-1 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded disabled:opacity-50"
+              >
+                {isDeleting ? "Deleting..." : "Delete Account"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -491,7 +630,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
             loading={loadingSubscription}
           />
         )}
-        {activeTab === "account" && <AccountTab user={user} />}
+        {activeTab === "account" && <AccountTab user={user} subscription={subscription} />}
       </div>
     </div>
   );
