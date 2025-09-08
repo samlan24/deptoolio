@@ -34,6 +34,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    console.log("Environment check:");
+    console.log("API Key exists:", !!process.env.LEMON_SQUEEZY_API_KEY);
+    console.log("Store ID:", process.env.LEMON_SQUEEZY_STORE_ID);
+    console.log("Variant ID:", process.env.LEMON_SQUEEZY_VARIANT_ID);
+    console.log("App URL:", process.env.NEXT_PUBLIC_APP_URL);
+
     const response = await fetch("https://api.lemonsqueezy.com/v1/checkouts", {
       method: "POST",
       headers: {

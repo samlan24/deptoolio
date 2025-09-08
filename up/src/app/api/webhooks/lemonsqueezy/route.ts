@@ -206,28 +206,68 @@ async function handleSubscriptionExpired(subscription: any) {
     console.log("Successfully expired subscription:", data);
   }
 }
+async function handlePaymentSuccess(invoiceData: any) {
+  console.log(
+    "Payment successful for subscription:",
+    invoiceData.attributes.subscription_id
+  );
 
-async function handlePaymentSuccess(subscription: any) {
-  console.log("Payment successful for subscription:", subscription.id);
+  const subscriptionId = invoiceData.attributes.subscription_id;
 
-  // Successful payment - extend the period
-  const renewsAt = new Date(subscription.attributes.renews_at);
-  const periodEnd = renewsAt.toISOString().split("T")[0];
+  // Fetch the actual subscription data from Lemon Squeezy API
+  try {
+    const subscriptionResponse = await fetch(
+      `https://api.lemonsqueezy.com/v1/subscriptions/${subscriptionId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.LEMON_SQUEEZY_API_KEY}`,
+          Accept: "application/vnd.api+json",
+        },
+      }
+    );
 
-  const { data, error } = await supabase
-    .from("subscriptions")
-    .update({
-      status: "active",
-      period_end: periodEnd,
-    })
-    .eq("lemon_squeezy_id", subscription.id)
-    .select();
+    if (!subscriptionResponse.ok) {
+      console.error("Failed to fetch subscription data");
+      return;
+    }
 
-  if (error) {
-    console.error("Payment success update error:", error);
-    throw error;
-  } else {
-    console.log("Successfully updated subscription after payment:", data);
+    const subscriptionData = await subscriptionResponse.json();
+    const subscription = subscriptionData.data;
+
+    // Now we can safely access renews_at
+    const renewsAt = subscription.attributes.renews_at;
+
+    if (!renewsAt) {
+      console.error("Missing renews_at in subscription data");
+      return;
+    }
+
+    const renewsAtDate = new Date(renewsAt);
+    if (isNaN(renewsAtDate.getTime())) {
+      console.error("Invalid renews_at date:", renewsAt);
+      return;
+    }
+
+    const periodEnd = renewsAtDate.toISOString().split("T")[0];
+
+    const { data, error } = await supabase
+      .from("subscriptions")
+      .update({
+        status: "active",
+        period_end: periodEnd,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("lemon_squeezy_id", subscriptionId);
+
+    if (error) {
+      console.error("Payment success update error:", error);
+      throw error;
+    } else {
+      console.log("Successfully updated subscription after payment:", data);
+    }
+  } catch (fetchError) {
+    console.error("Error fetching subscription data:", fetchError);
+    throw fetchError;
   }
 }
 
