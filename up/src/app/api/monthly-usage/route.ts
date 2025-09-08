@@ -28,24 +28,15 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  // Get user's subscription to find current billing period
-  const { data: subscription } = await supabase
-    .from('subscriptions')
-    .select('period_start')
-    .eq('user_id', user.id)
-    .single()
-
-  // Use billing period start instead of calendar month
-  const now = new Date();
-  const periodStart = subscription?.period_start
-    ? new Date(subscription.period_start).toISOString().split('T')[0]
-    : new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0] // fallback
+  // Calculate current month's usage
+  const now = new Date()
+  const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]
 
   const { data: monthlyCounts, error } = await supabase
     .from('daily_scan_counts')
     .select('scan_count')
     .eq('user_id', user.id)
-    .gte('scan_date', periodStart) // Use billing period instead of calendar month
+    .gte('scan_date', firstDayOfMonth)
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })
