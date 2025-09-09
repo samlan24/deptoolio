@@ -66,7 +66,11 @@ export async function POST() {
 
     return NextResponse.json({ success: true })
   } catch (error: any) {
-    console.error('Error incrementing scan count:', error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
-  }
+  console.error('Error incrementing scan count:', {
+    message: error instanceof Error ? error.message : 'Unknown error',
+    code: error?.code,
+    userId: user.id
+  });
+  return NextResponse.json({ error: 'Failed to update scan count' }, { status: 500 });
+}
 }

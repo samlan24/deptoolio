@@ -44,7 +44,15 @@ export async function GET() {
     .order("scan_date", { ascending: true });
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("Error fetching daily scan counts:", {
+      message: error.message,
+      code: error.code,
+      userId: user.id,
+    });
+    return NextResponse.json(
+      { error: "Failed to fetch daily usage data" },
+      { status: 500 }
+    );
   }
 
   return NextResponse.json({ dailyCounts: data });

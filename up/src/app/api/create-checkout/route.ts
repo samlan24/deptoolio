@@ -34,12 +34,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    console.log("Environment check:");
-    console.log("API Key exists:", !!process.env.LEMON_SQUEEZY_API_KEY);
-    console.log("Store ID:", process.env.LEMON_SQUEEZY_STORE_ID);
-    console.log("Variant ID:", process.env.LEMON_SQUEEZY_VARIANT_ID);
-    console.log("App URL:", process.env.NEXT_PUBLIC_APP_URL);
-
     const response = await fetch("https://api.lemonsqueezy.com/v1/checkouts", {
       method: "POST",
       headers: {
@@ -89,8 +83,14 @@ export async function POST(request: NextRequest) {
 
     if (!response.ok) {
       const error = await response.text();
-      console.error("Lemon Squeezy API error:", error);
-      throw new Error("Failed to create checkout");
+      // Log status and sanitized error info, not full response
+      console.error("Lemon Squeezy API error:", {
+        status: response.status,
+        statusText: response.statusText,
+        // Only log error if it doesn't contain sensitive data
+        hasError: !!error,
+      });
+      throw new Error(`Checkout creation failed: ${response.status}`);
     }
 
     const data = await response.json();
@@ -99,7 +99,11 @@ export async function POST(request: NextRequest) {
       checkoutUrl: data.data.attributes.url,
     });
   } catch (error) {
-    console.error("Checkout creation failed:", error);
+    // More specific error logging without exposing internals
+    console.error("Checkout creation failed:", {
+      message: error instanceof Error ? error.message : "Unknown error",
+      timestamp: new Date().toISOString(),
+    });
     return NextResponse.json(
       { error: "Failed to create checkout session" },
       { status: 500 }

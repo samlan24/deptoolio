@@ -16,7 +16,10 @@ export async function DELETE() {
     }
   );
 
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
 
   if (authError || !user) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
@@ -24,11 +27,13 @@ export async function DELETE() {
 
   try {
     // Delete user data in correct order (foreign keys first)
-    await supabase.from('scan_history').delete().eq('user_id', user.id);
-    await supabase.from('subscriptions').delete().eq('user_id', user.id);
+    await supabase.from("scan_history").delete().eq("user_id", user.id);
+    await supabase.from("subscriptions").delete().eq("user_id", user.id);
 
     // Delete the auth user
-    const { error: deleteError } = await supabase.auth.admin.deleteUser(user.id);
+    const { error: deleteError } = await supabase.auth.admin.deleteUser(
+      user.id
+    );
 
     if (deleteError) {
       throw deleteError;
@@ -36,7 +41,13 @@ export async function DELETE() {
 
     return Response.json({ success: true });
   } catch (error) {
-    console.error("Delete account error:", error);
-    return Response.json({ error: "Failed to delete account" }, { status: 500 });
+    console.error("Delete account error:", {
+      message: error instanceof Error ? error.message : "Unknown error",
+      timestamp: new Date().toISOString(),
+    });
+    return Response.json(
+      { error: "Failed to delete account" },
+      { status: 500 }
+    );
   }
 }

@@ -39,11 +39,6 @@ export async function GET(request: NextRequest) {
       .eq("user_id", user.id)
       .single();
 
-    console.log(
-      "Found subscription with LemonSqueezy ID:",
-      subscription?.lemon_squeezy_id
-    );
-
     if (error || !subscription?.lemon_squeezy_id) {
       return NextResponse.json(
         { error: "No active subscription found" },
@@ -56,7 +51,6 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ url: portalUrl });
   } catch (error) {
-    console.error("Customer portal error:", error);
     return NextResponse.json(
       { error: "Failed to get portal URL" },
       { status: 500 }
@@ -65,7 +59,6 @@ export async function GET(request: NextRequest) {
 }
 
 async function getCustomerPortalUrl(lemonSqueezyId: string) {
-  console.log("Retrieving subscription for portal URL:", lemonSqueezyId);
 
   // GET the subscription to access the urls.customer_portal
   const response = await fetch(
@@ -81,12 +74,6 @@ async function getCustomerPortalUrl(lemonSqueezyId: string) {
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error("LemonSqueezy API error:", {
-      status: response.status,
-      statusText: response.statusText,
-      body: errorText,
-      subscriptionId: lemonSqueezyId,
-    });
     throw new Error(
       `LemonSqueezy API error: ${response.status} ${response.statusText} - ${errorText}`
     );
@@ -99,6 +86,5 @@ async function getCustomerPortalUrl(lemonSqueezyId: string) {
     throw new Error("No customer portal URL available for this subscription");
   }
 
-  console.log("Successfully got portal URL");
   return portalUrl;
 }

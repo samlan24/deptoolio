@@ -26,8 +26,6 @@ export async function POST(request: NextRequest) {
     const eventType = event.meta.event_name;
     const subscription = event.data;
 
-    console.log("Webhook received - eventType:", eventType);
-
     switch (eventType) {
       case "subscription_created":
         await handleSubscriptionCreated(subscription, event.meta);
@@ -56,24 +54,18 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ received: true });
   } catch (error) {
-    console.error("Webhook error:", error);
+    console.error("Webhook processing failed:", {
+      message: error instanceof Error ? error.message : "Unknown error",
+    });
     return NextResponse.json({ error: "Webhook failed" }, { status: 500 });
   }
 }
 
 async function handleSubscriptionCreated(subscription: any, meta: any) {
-  console.log(
-    "Webhook received - subscription:",
-    JSON.stringify(subscription, null, 2)
-  );
-  console.log("Webhook received - meta:", JSON.stringify(meta, null, 2));
-
   const userId =
     meta.custom_data?.user_id ||
     subscription.attributes?.checkout_data?.custom?.user_id ||
     subscription.attributes?.custom?.user_id;
-
-  console.log("Extracted userId:", userId);
 
   if (!userId) {
     console.log("No userId found, skipping");
@@ -98,8 +90,6 @@ async function handleSubscriptionCreated(subscription: any, meta: any) {
     period_end: periodEnd,
   };
 
-  console.log("Attempting to insert:", insertData);
-
   // Use user_id for conflict resolution since it has a unique constraint
   const { data, error } = await supabase
     .from("subscriptions")
@@ -107,16 +97,17 @@ async function handleSubscriptionCreated(subscription: any, meta: any) {
     .select();
 
   if (error) {
-    console.error("Database error:", error);
+    console.error("Subscription creation failed:", {
+      subscriptionId: subscription.id,
+      message: error.message,
+    });
     throw error;
   } else {
-    console.log("Successfully inserted/updated subscription:", data);
+    console.log("Successfully inserted/updated subscription:");
   }
 }
 
 async function handleSubscriptionUpdated(subscription: any) {
-  console.log("Updating subscription:", subscription.id);
-
   // Calculate new period end from renews_at if it exists
   const renewsAt = subscription.attributes.renews_at;
   const updateData: any = {
@@ -135,16 +126,17 @@ async function handleSubscriptionUpdated(subscription: any) {
     .select();
 
   if (error) {
-    console.error("Update error:", error);
+    console.error("Subscription update failed:", {
+      subscriptionId: subscription.id,
+      message: error.message,
+    });
     throw error;
   } else {
-    console.log("Successfully updated subscription:", data);
+    console.log("Successfully updated subscription:");
   }
 }
 
 async function handleSubscriptionCancelled(subscription: any) {
-  console.log("Cancelling subscription:", subscription.id);
-
   // When cancelled, user keeps access until period_end
   // Don't change the period_end, just update status
   const { data, error } = await supabase
@@ -157,16 +149,14 @@ async function handleSubscriptionCancelled(subscription: any) {
     .select();
 
   if (error) {
-    console.error("Cancel error:", error);
+    console.error("Cancel error");
     throw error;
   } else {
-    console.log("Successfully cancelled subscription:", data);
+    console.log("Successfully cancelled subscription:");
   }
 }
 
 async function handleSubscriptionResumed(subscription: any) {
-  console.log("Resuming subscription:", subscription.id);
-
   const renewsAt = new Date(subscription.attributes.renews_at);
   const periodEnd = renewsAt.toISOString().split("T")[0];
 
@@ -180,16 +170,17 @@ async function handleSubscriptionResumed(subscription: any) {
     .select();
 
   if (error) {
-    console.error("Resume error:", error);
+    console.error("Subscription resume failed:", {
+      subscriptionId: subscription.id,
+      message: error.message,
+    });
     throw error;
   } else {
-    console.log("Successfully resumed subscription:", data);
+    console.log("Successfully resumed subscription:");
   }
 }
 
 async function handleSubscriptionExpired(subscription: any) {
-  console.log("Expiring subscription:", subscription.id);
-
   const { data, error } = await supabase
     .from("subscriptions")
     .update({
@@ -200,18 +191,16 @@ async function handleSubscriptionExpired(subscription: any) {
     .select();
 
   if (error) {
-    console.error("Expire error:", error);
+    console.error("Subscription expiration failed:", {
+      subscriptionId: subscription.id,
+      message: error.message,
+    });
     throw error;
   } else {
-    console.log("Successfully expired subscription:", data);
+    console.log("Successfully expired subscription:");
   }
 }
 async function handlePaymentSuccess(invoiceData: any) {
-  console.log(
-    "Payment successful for subscription:",
-    invoiceData.attributes.subscription_id
-  );
-
   const subscriptionId = invoiceData.attributes.subscription_id;
 
   // Fetch the actual subscription data from Lemon Squeezy API
@@ -260,20 +249,22 @@ async function handlePaymentSuccess(invoiceData: any) {
       .eq("lemon_squeezy_id", subscriptionId);
 
     if (error) {
-      console.error("Payment success update error:", error);
+      console.error("Payment success update error");
       throw error;
     } else {
-      console.log("Successfully updated subscription after payment:", data);
+      console.log("Successfully updated subscription after payment:");
     }
   } catch (fetchError) {
-    console.error("Error fetching subscription data:", fetchError);
+    console.error("Subscription fetch failed:", {
+      subscriptionId,
+      message:
+        fetchError instanceof Error ? fetchError.message : "Unknown error",
+    });
     throw fetchError;
   }
 }
 
 async function handlePaymentFailed(subscription: any) {
-  console.log("Payment failed for subscription:", subscription.id);
-
   const { data, error } = await supabase
     .from("subscriptions")
     .update({
@@ -284,12 +275,12 @@ async function handlePaymentFailed(subscription: any) {
     .select();
 
   if (error) {
-    console.error("Payment failed update error:", error);
+    console.error("Payment failed update error:", {
+      subscriptionId: subscription.id,
+      message: error.message,
+    });
     throw error;
   } else {
-    console.log(
-      "Successfully updated subscription after failed payment:",
-      data
-    );
+    console.log("Successfully updated subscription after failed payment:");
   }
 }
