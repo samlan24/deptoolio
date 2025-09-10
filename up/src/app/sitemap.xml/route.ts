@@ -11,10 +11,7 @@ export async function GET(): Promise<Response> {
       `${baseUrl}/`,
       `${baseUrl}/about`,
       `${baseUrl}/terms`,
-      `${baseUrl}/guides`,
       `${baseUrl}/privacy`,
-      `${baseUrl}/guides`,
-      `${baseUrl}/checks`,
       `${baseUrl}/login`,
     ];
 
