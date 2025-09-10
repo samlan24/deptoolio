@@ -38,27 +38,22 @@ export const metadata: Metadata = {
     description:
       "Package file scanner for outdated and vulnerable dependencies.",
     type: "website",
-    url: "https://pacgie.com",
+    url: "https://www.pacgie.com",
   },
   alternates: {
-    canonical: "https://pacgie.com",
-  },
+  canonical: "https://www.pacgie.com",
+},
 };
 
 const structuredData = {
   "@context": "https://schema.org",
   "@type": "WebSite",
   name: "Pacgie",
-  url: "https://pacgie.com",
+  url: "https://www.pacgie.com",
   description: "Package file scanner for outdated and vulnerable dependencies across multiple programming languages.",
   publisher: {
     "@type": "Organization",
     name: "Pacgie",
-    url: "https://pacgie.com",
-    logo: {
-      "@type": "ImageObject",
-      url: "https://pacgie.com/logo.png",
-    },
   },
 };
 

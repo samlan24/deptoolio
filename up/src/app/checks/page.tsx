@@ -8,10 +8,10 @@ export const metadata: Metadata = {
     title: "Dependency Checker",
     description: "Upload your dependency files to check for outdated packages.",
     type: "website",
-    url: "https://pacgie.com/checks",
+    url: "https://www.pacgie.com/checks",
   },
   alternates: {
-    canonical: "https://pacgie.com/checks",
+    canonical: "https://www.pacgie.com/checks",
   },
 };
 
@@ -23,7 +23,7 @@ const structuredData = {
   operatingSystem: "Any",
   description:
     "A free online tool to upload dependency files and check for outdated packages across JavaScript, Python, PHP, Go, Rust, and .NET projects.",
-  url: "https://pacgie.com/checks",
+  url: "https://www.pacgie.com/checks",
   featureList: [
     "Upload package.json, go.mod, requirements.txt, Pipfile, composer.json, cargo.toml, .csproj",
     "Scan for outdated dependencies",
