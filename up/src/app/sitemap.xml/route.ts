@@ -4,7 +4,7 @@ export async function GET(): Promise<Response> {
   const baseUrl: string =
     process.env.NODE_ENV === "development"
       ? "http://localhost:3000"
-      : "https://pacgie.com";
+      : "https://www.pacgie.com";
 
   try {
     const staticUrls: string[] = [
