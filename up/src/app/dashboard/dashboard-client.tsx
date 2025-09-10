@@ -380,14 +380,22 @@ function BillingTab({ subscription, loading }: BillingTabProps) {
   );
 }
 
-function AccountTab({ user, subscription }: { user: any; subscription: Subscription | null }) {
+function AccountTab({
+  user,
+  subscription,
+}: {
+  user: any;
+  subscription: Subscription | null;
+}) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
   const handleDeleteAccount = async () => {
     try {
       setIsDeleting(true);
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
 
       if (!session?.access_token) {
         alert("Please log in to delete your account");
@@ -424,9 +432,11 @@ function AccountTab({ user, subscription }: { user: any; subscription: Subscript
     const periodEnd = new Date(subscription.period_end);
 
     // Can delete if subscription is expired or not active
-    return subscription.status === 'expired' ||
-           (subscription.status === 'cancelled' && now > periodEnd) ||
-           subscription.plan === 'free';
+    return (
+      subscription.status === "expired" ||
+      (subscription.status === "cancelled" && now > periodEnd) ||
+      subscription.plan === "free"
+    );
   };
 
   const handleSubscriptionAction = async (actionType: string) => {
@@ -481,24 +491,35 @@ function AccountTab({ user, subscription }: { user: any; subscription: Subscript
 
         {/* Delete Account Section */}
         <div className="mt-8 pt-6 border-t border-gray-700">
-          <h3 className="text-lg font-semibold text-red-400 mb-4">Danger Zone</h3>
+          <h3 className="text-lg font-semibold text-red-400 mb-4">
+            Danger Zone
+          </h3>
 
           {!canDeleteAccount() ? (
             <div className="bg-red-900/20 border border-red-700 rounded-lg p-4">
               <p className="text-red-300 mb-3">
-                You must cancel your subscription before deleting your account.
+                {subscription?.status === "cancelled"
+                  ? `Your subscription is cancelled but you still have access until ${new Date(
+                      subscription.period_end
+                    ).toLocaleDateString()}. Account deletion will be available after your subscription period ends.`
+                  : subscription?.status === "active"
+                  ? "You must cancel your active subscription before deleting your account."
+                  : "You must resolve your subscription status before deleting your account."}
               </p>
               <button
                 onClick={() => handleSubscriptionAction("manage")}
                 className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded text-sm"
               >
-                Manage Subscription
+                {subscription?.status === "cancelled"
+                  ? "View Subscription Details"
+                  : "Manage Subscription"}
               </button>
             </div>
           ) : (
             <div className="bg-red-900/20 border border-red-700 rounded-lg p-4">
               <p className="text-red-300 mb-3">
-                This will permanently delete your account and all associated data. This action cannot be undone.
+                This will permanently delete your account and all associated
+                data. This action cannot be undone.
               </p>
               <button
                 onClick={() => setShowDeleteDialog(true)}
@@ -515,10 +536,13 @@ function AccountTab({ user, subscription }: { user: any; subscription: Subscript
       {showDeleteDialog && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-gray-800 rounded-lg p-6 max-w-md mx-4">
-            <h3 className="text-lg font-semibold text-white mb-4">Confirm Account Deletion</h3>
+            <h3 className="text-lg font-semibold text-white mb-4">
+              Confirm Account Deletion
+            </h3>
             <p className="text-gray-300 mb-6">
-              Are you sure you want to delete your account? This action is permanent and cannot be undone.
-              All your data will be permanently removed.
+              Are you sure you want to delete your account? This action is
+              permanent and cannot be undone. All your data will be permanently
+              removed.
             </p>
             <div className="flex gap-3">
               <button
@@ -630,7 +654,9 @@ export default function DashboardClient({ user }: DashboardClientProps) {
             loading={loadingSubscription}
           />
         )}
-        {activeTab === "account" && <AccountTab user={user} subscription={subscription} />}
+        {activeTab === "account" && (
+          <AccountTab user={user} subscription={subscription} />
+        )}
       </div>
     </div>
   );
