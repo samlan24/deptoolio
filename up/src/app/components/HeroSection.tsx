@@ -3,16 +3,21 @@ import { useState } from "react";
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
 import Link from "next/link";
-import { Upload, CheckCircle, FileCode, Zap, ArrowRight } from "lucide-react";
 import {
-  JavascriptOriginal,
-  PythonOriginal,
-  GoOriginal,
-  PhpOriginal,
-  RustOriginal,
-  COriginal,
-
-} from "devicons-react";
+  Upload,
+  CheckCircle,
+  FileCode,
+  Zap,
+  ArrowRight,
+} from "lucide-react";
+import {
+  SiJavascript,
+  SiPython,
+  SiGo,
+  SiPhp,
+  SiRust,
+  SiC,
+} from "react-icons/si";
 
 const HeroSection = () => {
   return (
@@ -92,12 +97,12 @@ const HeroSection = () => {
 
             {/* Language Icons below the Card */}
             <div className="flex justify-center items-center gap-6 mt-10">
-              <JavascriptOriginal size={30} />
-              <PythonOriginal size={30} />
-              <GoOriginal size={30} />
-              <RustOriginal size={30} />
-              <PhpOriginal size={30} />
-              <COriginal size={30} />
+              <SiJavascript size={30} />
+              <SiPython size={30} />
+              <SiGo size={30} />
+              <SiRust size={30} />
+              <SiPhp size={30} />
+              <SiC size={30} />
             </div>
           </div>
         </div>
