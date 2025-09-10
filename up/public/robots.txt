@@ -6,5 +6,8 @@ Allow: /privacy
 Allow: /guides
 Allow: /checks
 Allow: /login
+Disallow: /api/
 Disallow: /dashboard
 Disallow: /repo-scanner
+
+Sitemap: https://pacgie.com/sitemap.xml
