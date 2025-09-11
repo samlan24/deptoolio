@@ -41,8 +41,13 @@ export const metadata: Metadata = {
     url: "https://www.pacgie.com",
   },
   alternates: {
-  canonical: "https://www.pacgie.com",
-},
+    canonical: "https://www.pacgie.com",
+  },
+  verification: {
+    other: {
+      "msvalidate.01": "097F1884204971FF9F28F90ECC1A08F0", // ✅ Bing verification
+    },
+  },
 };
 
 const structuredData = {
@@ -50,7 +55,8 @@ const structuredData = {
   "@type": "WebSite",
   name: "Pacgie",
   url: "https://www.pacgie.com",
-  description: "Package file scanner for outdated and vulnerable dependencies across multiple programming languages.",
+  description:
+    "Package file scanner for outdated and vulnerable dependencies across multiple programming languages.",
   publisher: {
     "@type": "Organization",
     name: "Pacgie",
