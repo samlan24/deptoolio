@@ -9,7 +9,7 @@ export default function TermsPage() {
   return (
     <div className="pt-20 max-w-3xl mx-auto px-6 py-12">
       <h1 className="text-3xl font-bold mb-6">Terms & Conditions</h1>
-      <p className="mb-4">Last Updated: [Insert Date]</p>
+      <p className="mb-4">Last Updated: 2025-09-11</p>
 
       <p className="mb-6">
         These Terms govern your use of <strong>Pacgie</strong>. By using the
@@ -22,9 +22,7 @@ export default function TermsPage() {
           Pacgie provides scanning and upload tools with both free and paid
           options.
         </li>
-        <li>
-          <strong>Free Users:</strong> Limited uploads per day, tracked via IP.
-        </li>
+
         <li>
           <strong>Paid/Registered Users:</strong> Purchase credits tracked via
           token and linked to your account email.

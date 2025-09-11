@@ -40,6 +40,7 @@ const Footer = () => {
 
                 <li><a href="#" className="hover:text-primary transition-colors">Twitter</a></li>
                 <li><a href="#" className="hover:text-primary transition-colors">LinkedIn</a></li>
+                <li> email: hello@pacgie.com</li>
               </ul>
             </div>
           </div>
@@ -58,6 +59,8 @@ const Footer = () => {
               </a>
               <a href="#" className="text-muted-foreground hover:text-primary transition-colors">
                 <Mail className="w-5 h-5" />
+                <span className="sr-only">Email</span>
+                <span>hello@pacgie.com</span>
               </a>
             </div>
           </div>

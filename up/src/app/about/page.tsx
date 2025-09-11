@@ -26,17 +26,14 @@ export default function AboutPage() {
 
       <h2 className="text-xl font-semibold mt-8 mb-4">How It Works</h2>
       <ul className="list-disc ml-6 mb-6 space-y-2">
-        <li>
-          <strong>Free Users:</strong> Run scans with daily limits, tracked
-          anonymously by IP.
-        </li>
+
         <li>
           <strong>Registered Users:</strong> Create an account with your email
           to track your scans and progress over time.
         </li>
         <li>
           <strong>Paid Users:</strong> Purchase credits through Lemon Squeezy,
-          tracked by your account token. Credits are valid for 6 months and can
+          tracked by your account token. Credits are valid for one month and can
           be repurchased anytime.
         </li>
       </ul>
@@ -46,7 +43,7 @@ export default function AboutPage() {
         <li>Lightweight and easy to use — no complex setup required.</li>
         <li>Transparent pricing with one-time, non-recurring credits.</li>
         <li>
-          Focused on privacy: we only collect what’s necessary (IP, email, and
+          Focused on privacy: we only collect what’s necessary (email, and
           tokens) to provide the service.
         </li>
         <li>Powered by modern infrastructure to ensure fast and reliable scans.</li>
@@ -62,7 +59,7 @@ export default function AboutPage() {
       <h2 className="text-xl font-semibold mt-8 mb-4">Get in Touch</h2>
       <p>
         Have questions or feedback? We’d love to hear from you. Reach out at{" "}
-        <span className="font-medium">[Insert Contact Email]</span>.
+        <span className="font-medium">hello@pacgie.com</span>.
       </p>
     </div>
   );
