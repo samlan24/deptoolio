@@ -396,6 +396,19 @@ export default function Home() {
     return { total, current, outdated, major };
   };
 
+  // Add this function after getSummaryStats()
+  const getVulnerabilitySummary = () => {
+    const totalVulns = results.reduce((total, dep) => {
+      return total + (dep.vulnerabilities?.length || 0);
+    }, 0);
+
+    const depsWithVulns = results.filter(
+      (dep) => dep.vulnerabilities && dep.vulnerabilities.length > 0
+    ).length;
+
+    return { totalVulns, depsWithVulns };
+  };
+
   const getLicenseColorClass = (license: string | null): string => {
     if (!license) return "bg-gray-300 text-gray-700";
 
@@ -427,6 +440,7 @@ export default function Home() {
 
   const fileTypeInfo = getFileTypeInfo(detectedFileType);
   const stats = getSummaryStats();
+  const vulnSummary = getVulnerabilitySummary();
 
   useEffect(() => {
     const getUser = async () => {
@@ -560,7 +574,7 @@ export default function Home() {
 
             <div className="mt-12">
               {/* Summary Stats */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
                 <div className="bg-white rounded-lg shadow p-4 text-center">
                   <div className="text-2xl font-bold text-gray-900">
                     {stats.total}
@@ -584,6 +598,33 @@ export default function Home() {
                     {stats.major}
                   </div>
                   <div className="text-sm text-gray-600">Major Updates</div>
+                </div>
+
+                <div className="bg-white rounded-lg shadow p-4 text-center">
+                  <div
+                    className={`text-2xl font-bold ${
+                      getVulnerabilitySummary().totalVulns > 0
+                        ? "text-red-600"
+                        : "text-green-600"
+                    }`}
+                  >
+                    {getVulnerabilitySummary().totalVulns}
+                  </div>
+                  <div className="text-sm text-gray-600">
+                    {getVulnerabilitySummary().totalVulns === 0
+                      ? "No Vulnerabilities"
+                      : getVulnerabilitySummary().totalVulns === 1
+                      ? "Vulnerability"
+                      : "Vulnerabilities"}
+                  </div>
+                  {getVulnerabilitySummary().depsWithVulns > 0 && (
+                    <div className="text-xs text-gray-500 mt-1">
+                      in {getVulnerabilitySummary().depsWithVulns}{" "}
+                      {getVulnerabilitySummary().depsWithVulns === 1
+                        ? "package"
+                        : "packages"}
+                    </div>
+                  )}
                 </div>
               </div>
 
