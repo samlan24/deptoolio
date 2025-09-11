@@ -26,6 +26,20 @@ export async function POST(request: NextRequest) {
     const eventType = event.meta.event_name;
     const subscription = event.data;
 
+    // Duplicate event protection
+    const eventId = event.meta.webhook_id;
+
+    // Check if we've already processed this event
+    const { data: existingEvent } = await supabase
+      .from('webhook_events')
+      .select('id')
+      .eq('webhook_id', eventId)
+      .single();
+
+    if (existingEvent) {
+      return NextResponse.json({ message: "Event already processed" });
+    }
+
     switch (eventType) {
       case "subscription_created":
         await handleSubscriptionCreated(subscription, event.meta);
@@ -51,6 +65,11 @@ export async function POST(request: NextRequest) {
       default:
         console.log(`Unhandled event type: ${eventType}`);
     }
+
+    // Record that we've processed this event
+    await supabase
+      .from('webhook_events')
+      .insert({ webhook_id: eventId, processed_at: new Date().toISOString() });
 
     return NextResponse.json({ received: true });
   } catch (error) {
@@ -209,15 +228,22 @@ async function handlePaymentSuccess(invoiceData: any) {
 
   // Fetch the actual subscription data from Lemon Squeezy API
   try {
+    // Request timeout protection
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
     const subscriptionResponse = await fetch(
       `https://api.lemonsqueezy.com/v1/subscriptions/${subscriptionId}`,
       {
+        signal: controller.signal,
         headers: {
           Authorization: `Bearer ${process.env.LEMON_SQUEEZY_API_KEY}`,
           Accept: "application/vnd.api+json",
         },
       }
     );
+
+    clearTimeout(timeoutId);
 
     if (!subscriptionResponse.ok) {
       console.error("Failed to fetch subscription data");
