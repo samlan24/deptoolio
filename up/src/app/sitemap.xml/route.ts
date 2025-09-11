@@ -1,16 +1,22 @@
-import { NextResponse } from 'next/server';
+import { createClient } from "@/prismicio";
+import { NextResponse } from "next/server";
 
-// Example data fetching function for blog UIDs - replace with your real data source
+// Fetch all blog post UIDs from Prismic
 async function getBlogPostUIDs(): Promise<string[]> {
-  // Replace with your real API call or data fetching logic
-  return ['post-1', 'post-2', 'post-3'];
+  const client = createClient();
+  const posts = await client.getAllByType("blog_posts", {
+    // optional: order or page size
+    orderings: [{ field: "first_publication_date", direction: "desc" }],
+  });
+
+  return posts.map((post) => post.uid); // Extract UIDs
 }
 
 export async function GET(): Promise<Response> {
   const baseUrl: string =
-    process.env.NODE_ENV === 'development'
-      ? 'http://localhost:3000'
-      : 'https://www.pacgie.com';
+    process.env.NODE_ENV === "development"
+      ? "http://localhost:3000"
+      : "https://www.pacgie.com";
 
   try {
     const staticUrls: string[] = [
@@ -22,28 +28,25 @@ export async function GET(): Promise<Response> {
       `${baseUrl}/blog`,
     ];
 
-    // Fetch blog post UIDs dynamically
+    // ✅ Pull real UIDs
     const blogUIDs = await getBlogPostUIDs();
 
-    // Generate dynamic blog URLs like /blog/post-1, /blog/post-2 etc.
     const blogUrls = blogUIDs.map((uid) => `${baseUrl}/blog/${uid}`);
 
-    // Combine all URLs
     const allUrls = [...staticUrls, ...blogUrls];
 
-    // Generate sitemap XML string
     const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  ${allUrls.map((url) => `<url><loc>${url}</loc></url>`).join('')}
+  ${allUrls.map((url) => `<url><loc>${url}</loc></url>`).join("\n  ")}
 </urlset>`;
 
     return new Response(sitemap, {
       headers: {
-        'Content-Type': 'application/xml',
+        "Content-Type": "application/xml",
       },
     });
   } catch (err: unknown) {
-    console.error('🔥 Sitemap generation error:', err);
-    return new Response('Sitemap generation failed', { status: 500 });
+    console.error("🔥 Sitemap generation error:", err);
+    return new Response("Sitemap generation failed", { status: 500 });
   }
 }
