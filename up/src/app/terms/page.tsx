@@ -39,6 +39,13 @@ export default function TermsPage() {
         </li>
       </ul>
 
+      <h2 className="text-xl font-semibold mt-8 mb-4">Refund & Cancellation Policy</h2>
+      <ul className="list-disc ml-6 mb-6 space-y-2">
+        <li>Pacgie does not offer refunds for purchased credits or subscription payments. All sales are final.</li>
+        <li>You may cancel your subscription or auto-renewal at any time. If you cancel, you will retain access to your purchased credits or subscription features until the end of your current billing period, and you will not be charged for the next billing cycle.</li>
+        <li>If you have any questions or concerns, please contact us at <span className="font-medium">hello@pacgie.com</span>.</li>
+      </ul>
+
       <h2 className="text-xl font-semibold mt-8 mb-4">
         3. User Responsibilities
       </h2>
