@@ -456,7 +456,19 @@ export default function RepoScanner() {
     return { total, current, outdated, major };
   };
 
+  const getVulnerabilitySummary = () => {
+    const totalVulns = results.reduce((total, dep) => {
+      return total + (dep.vulnerabilities?.length || 0);
+    }, 0);
+
+    const depsWithVulns = results.filter(
+      (dep) => dep.vulnerabilities && dep.vulnerabilities.length > 0
+    ).length;
+
+    return { totalVulns, depsWithVulns };
+  };
   const stats = getSummaryStats();
+  const vulnSummary = getVulnerabilitySummary();
 
   // Scan history - optional, can be expanded later
   const [scanHistory, setScanHistory] = useState<
@@ -942,7 +954,7 @@ export default function RepoScanner() {
               </button>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
               <div className="bg-white rounded-lg shadow p-4 text-center">
                 <div className="text-2xl font-bold text-gray-900">
                   {stats.total}
@@ -966,6 +978,33 @@ export default function RepoScanner() {
                   {stats.major}
                 </div>
                 <div className="text-sm text-gray-600">Major Updates</div>
+              </div>
+
+              <div className="bg-white rounded-lg shadow p-4 text-center">
+                <div
+                  className={`text-2xl font-bold ${
+                    getVulnerabilitySummary().totalVulns > 0
+                      ? "text-red-600"
+                      : "text-green-600"
+                  }`}
+                >
+                  {getVulnerabilitySummary().totalVulns}
+                </div>
+                <div className="text-sm text-gray-600">
+                  {getVulnerabilitySummary().totalVulns === 0
+                    ? "No Vulnerabilities"
+                    : getVulnerabilitySummary().totalVulns === 1
+                    ? "Vulnerability"
+                    : "Vulnerabilities"}
+                </div>
+                {getVulnerabilitySummary().depsWithVulns > 0 && (
+                  <div className="text-xs text-gray-500 mt-1">
+                    in {getVulnerabilitySummary().depsWithVulns}{" "}
+                    {getVulnerabilitySummary().depsWithVulns === 1
+                      ? "package"
+                      : "packages"}
+                  </div>
+                )}
               </div>
             </div>
 
