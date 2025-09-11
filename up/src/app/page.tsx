@@ -4,6 +4,8 @@ import DesiredOutcomeSection from "./components/DesiredOutcomeSection";
 import ProductIntroSection from "./components/ProductIntroSection";
 import PricingSection from "./components/PricingSection";
 import FinalCTASection from "./components/FinalCTASection";
+import FAQSection from "./components/FAQSection";
+import Footer from "./components/Footer";
 
 
 const Index = () => {
@@ -15,6 +17,8 @@ const Index = () => {
       <ProductIntroSection id="features" />
       <PricingSection id="pricing" />
       <FinalCTASection />
+      <FAQSection />
+      <Footer />
     </div>
   );
 };
