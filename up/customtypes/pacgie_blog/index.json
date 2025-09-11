@@ -1,0 +1,63 @@
+{
+  "format": "page",
+  "id": "pacgie_blog",
+  "label": "pacgie_blog",
+  "repeatable": false,
+  "status": true,
+  "json": {
+    "Main": {
+      "page_title": {
+        "type": "StructuredText",
+        "config": {
+          "label": "Page Title",
+          "placeholder": "latest gudies",
+          "allowTargetBlank": false,
+          "single": "heading1"
+        }
+      },
+      "hero_section": {
+        "type": "StructuredText",
+        "config": {
+          "label": "Hero Section",
+          "placeholder": "Write an engaging introduction about your security guides...",
+          "allowTargetBlank": true,
+          "multi": "paragraph,preformatted,heading1,heading2,heading3,heading4,heading5,heading6,strong,em,hyperlink,image,embed,list-item,o-list-item,rtl"
+        }
+      },
+      "slices": {
+        "type": "Slices",
+        "fieldset": "Slice Zone",
+        "config": {
+          "choices": {}
+        }
+      }
+    },
+    "SEO & Metadata": {
+      "meta_title": {
+        "config": {
+          "label": "Meta Title",
+          "placeholder": "Dependency Security Guides for Developers"
+        },
+        "type": "Text"
+      },
+      "meta_description": {
+        "config": {
+          "label": "Meta Description",
+          "placeholder": "Expert guides on dependency security, vulnerability management, and secure coding practices..."
+        },
+        "type": "Text"
+      },
+      "meta_image": {
+        "config": {
+          "constraint": {
+            "height": 1260,
+            "width": 2400
+          },
+          "label": "Meta Image",
+          "thumbnails": []
+        },
+        "type": "Image"
+      }
+    }
+  }
+}
