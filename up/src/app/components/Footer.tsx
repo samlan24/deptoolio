@@ -14,15 +14,15 @@ const Footer = () => {
             <div>
               <h4 className="font-bold text-lg text-foreground mb-4">Product</h4>
               <ul className="space-y-2 text-muted-foreground">
-                <li><a href="#features" className="hover:text-primary transition-colors">Features</a></li>
-                <li><a href="#pricing" className="hover:text-primary transition-colors">Pricing</a></li>
+                <li><a href="/#features" className="hover:text-primary transition-colors">Features</a></li>
+                <li><a href="/#pricing" className="hover:text-primary transition-colors">Pricing</a></li>
               </ul>
             </div>
             <div>
               <h4 className="font-bold text-lg text-foreground mb-4">Resources</h4>
               <ul className="space-y-2 text-muted-foreground">
 
-                <li><a href="#" className="hover:text-primary transition-colors">Guides</a></li>
+                <li><a href="/#" className="hover:text-primary transition-colors">Guides</a></li>
               </ul>
             </div>
             <div>
@@ -57,11 +57,7 @@ const Footer = () => {
               <a href="#" className="text-muted-foreground hover:text-primary transition-colors">
                 <Twitter className="w-5 h-5" />
               </a>
-              <a href="#" className="text-muted-foreground hover:text-primary transition-colors">
-                <Mail className="w-5 h-5" />
-                <span className="sr-only">Email</span>
-                <span>hello@pacgie.com</span>
-              </a>
+
             </div>
           </div>
         </div>
