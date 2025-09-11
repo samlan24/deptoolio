@@ -20,10 +20,7 @@ export default function PrivacyPage() {
 
       <h2 className="text-xl font-semibold mt-8 mb-4">1. Information We Collect</h2>
       <ul className="list-disc ml-6 mb-6 space-y-2">
-        <li>
-
-          <strong>IP address</strong> to track usage and enforce upload limits.
-        </li>
+        
         <li>
           <strong>Registered/Paid Users:</strong>
           <ul className="list-disc ml-6 space-y-1">
