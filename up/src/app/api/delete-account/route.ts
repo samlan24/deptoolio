@@ -53,26 +53,39 @@ export async function DELETE() {
 
       // Prevent deletion if subscription is active or cancelled but still within period
       const hasActiveSubscription =
-        subscription.status === 'active' ||
-        subscription.status === 'past_due' ||
-        (subscription.status === 'cancelled' && now <= periodEnd);
+        subscription.status === "active" ||
+        subscription.status === "past_due" ||
+        (subscription.status === "cancelled" && now <= periodEnd);
 
       // Only allow deletion for free plans or truly expired subscriptions
       const canDelete =
-        subscription.plan === 'free' ||
-        subscription.status === 'expired' ||
-        (subscription.status === 'cancelled' && now > periodEnd);
+        subscription.plan === "free" ||
+        subscription.status === "expired" ||
+        (subscription.status === "cancelled" && now > periodEnd);
 
       if (hasActiveSubscription && !canDelete) {
-        return Response.json({
-          error: "Cannot delete account with active subscription. Please cancel your subscription first."
-        }, { status: 403 });
+        return Response.json(
+          {
+            error:
+              "Cannot delete account with active subscription. Please cancel your subscription first.",
+          },
+          { status: 403 }
+        );
       }
     }
 
     // Proceed with deletion if checks pass
     await supabaseAdmin.from("scan_history").delete().eq("user_id", user.id);
     await supabaseAdmin.from("subscriptions").delete().eq("user_id", user.id);
+    await supabaseAdmin.from("profiles").delete().eq("id", user.id);
+    await supabaseAdmin
+      .from("user_rate_limits")
+      .delete()
+      .eq("user_id", user.id);
+    await supabaseAdmin
+      .from("daily_scan_counts")
+      .delete()
+      .eq("user_id", user.id);
 
     // Delete the auth user using admin client
     const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(

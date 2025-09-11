@@ -72,13 +72,9 @@ async function handleSubscriptionCreated(subscription: any, meta: any) {
     return;
   }
 
-  // Calculate period dates from renews_at
-  const renewsAt = new Date(subscription.attributes.renews_at);
-  const createdAt = new Date(subscription.attributes.created_at);
-
-  // For monthly subscription, period_start is created_at, period_end is renews_at
-  const periodStart = createdAt.toISOString().split("T")[0];
-  const periodEnd = renewsAt.toISOString().split("T")[0];
+  // Store full timestamps instead of just dates
+  const renewsAt = subscription.attributes.renews_at;
+  const createdAt = subscription.attributes.created_at;
 
   const insertData = {
     user_id: userId,
@@ -86,8 +82,8 @@ async function handleSubscriptionCreated(subscription: any, meta: any) {
     status: subscription.attributes.status,
     plan: "pro",
     scan_limit: 250,
-    period_start: periodStart,
-    period_end: periodEnd,
+    period_start: createdAt,    // Full timestamp
+    period_end: renewsAt,       // Full timestamp
   };
 
   // Use user_id for conflict resolution since it has a unique constraint
@@ -108,15 +104,15 @@ async function handleSubscriptionCreated(subscription: any, meta: any) {
 }
 
 async function handleSubscriptionUpdated(subscription: any) {
-  // Calculate new period end from renews_at if it exists
+  // Store full timestamp instead of just date
   const renewsAt = subscription.attributes.renews_at;
   const updateData: any = {
     status: subscription.attributes.status,
   };
 
-  // Update period_end if we have a new renews_at date
+  // Update period_end with full timestamp if we have a new renews_at
   if (renewsAt) {
-    updateData.period_end = new Date(renewsAt).toISOString().split("T")[0];
+    updateData.period_end = renewsAt;  // Full timestamp
   }
 
   const { data, error } = await supabase
@@ -138,13 +134,21 @@ async function handleSubscriptionUpdated(subscription: any) {
 
 async function handleSubscriptionCancelled(subscription: any) {
   // When cancelled, user keeps access until period_end
-  // Don't change the period_end, just update status
+  // Use ends_at for cancelled subscriptions (more accurate than renews_at)
+  const endsAt = subscription.attributes.ends_at;
+
+  const updateData: any = {
+    status: "cancelled",
+  };
+
+  // Update period_end to the exact cancellation end time if available
+  if (endsAt) {
+    updateData.period_end = endsAt;  // Full timestamp
+  }
+
   const { data, error } = await supabase
     .from("subscriptions")
-    .update({
-      status: "cancelled",
-      // Keep existing period_end - user has access until then
-    })
+    .update(updateData)
     .eq("lemon_squeezy_id", subscription.id)
     .select();
 
@@ -157,14 +161,13 @@ async function handleSubscriptionCancelled(subscription: any) {
 }
 
 async function handleSubscriptionResumed(subscription: any) {
-  const renewsAt = new Date(subscription.attributes.renews_at);
-  const periodEnd = renewsAt.toISOString().split("T")[0];
+  const renewsAt = subscription.attributes.renews_at;
 
   const { data, error } = await supabase
     .from("subscriptions")
     .update({
       status: "active",
-      period_end: periodEnd,
+      period_end: renewsAt,  // Full timestamp
     })
     .eq("lemon_squeezy_id", subscription.id)
     .select();
@@ -200,6 +203,7 @@ async function handleSubscriptionExpired(subscription: any) {
     console.log("Successfully expired subscription:");
   }
 }
+
 async function handlePaymentSuccess(invoiceData: any) {
   const subscriptionId = invoiceData.attributes.subscription_id;
 
@@ -231,19 +235,18 @@ async function handlePaymentSuccess(invoiceData: any) {
       return;
     }
 
+    // Validate that renewsAt is a valid timestamp
     const renewsAtDate = new Date(renewsAt);
     if (isNaN(renewsAtDate.getTime())) {
       console.error("Invalid renews_at date:", renewsAt);
       return;
     }
 
-    const periodEnd = renewsAtDate.toISOString().split("T")[0];
-
     const { data, error } = await supabase
       .from("subscriptions")
       .update({
         status: "active",
-        period_end: periodEnd,
+        period_end: renewsAt,  // Store full timestamp
         updated_at: new Date().toISOString(),
       })
       .eq("lemon_squeezy_id", subscriptionId);
