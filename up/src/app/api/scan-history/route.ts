@@ -131,12 +131,8 @@ export async function DELETE(request: NextRequest) {
 
   const { searchParams } = new URL(request.url);
   const scanId = searchParams.get("id");
-
-  if (!scanId || !/^\d+$/.test(scanId)) {
-    return NextResponse.json(
-      { error: "Invalid scan ID format" },
-      { status: 400 }
-    );
+  if (!scanId) {
+    return NextResponse.json({ error: "Scan ID is required" }, { status: 400 });
   }
 
   const { error } = await supabase
