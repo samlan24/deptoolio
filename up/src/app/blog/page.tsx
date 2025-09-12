@@ -4,6 +4,7 @@ import { PrismicRichText } from "@prismicio/react";
 import { createClient } from "@/prismicio";
 import Link from "next/link";
 import Image from "next/image";
+import BlogList from "./components/BlogList";
 
 const blogStructuredData = {
   "@context": "https://schema.org",
@@ -40,8 +41,7 @@ export default async function BlogPage() {
     // Separate featured post and regular posts
     const featuredPost = blogPosts.find((post) => post.data.featured_post);
     const regularPosts = blogPosts
-      .filter((post) => !post.data.featured_post)
-      .slice(0, 8);
+      .filter((post) => !post.data.featured_post);
 
     return (
       <>
@@ -112,49 +112,8 @@ export default async function BlogPage() {
           </div>
         )}
 
-        {/* Regular Posts Grid */}
-        <div>
-          <h2 className="text-2xl font-semibold mb-6">Latest Guides</h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {regularPosts.map((post) => (
-              <Link key={post.uid} href={`/blog/${post.uid}`}>
-                <article className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
-                  {post.data.featured_image?.url && (
-                    <Image
-                      src={post.data.featured_image.url}
-                      alt={post.data.featured_image.alt || ""}
-                      width={400}
-                      height={250}
-                      className="w-full h-48 object-cover"
-                    />
-                  )}
-                  <div className="p-6">
-                    <div className="flex items-center mb-3">
-                      <span className="bg-blue-100 text-blue-800 text-sm px-2 py-1 rounded-full">
-                        {post.data.category}
-                      </span>
-                      <span className="text-gray-500 text-sm ml-3">
-                        {new Date(
-                          post.data.published_date ||
-                            post.first_publication_date
-                        ).toLocaleDateString()}
-                      </span>
-                    </div>
-                    <h3 className="font-bold text-lg mb-2">
-                      <PrismicRichText field={post.data.title} />
-                    </h3>
-                    <div className="text-gray-600 text-sm mb-4">
-                      <PrismicRichText field={post.data.excerpt} />
-                    </div>
-                    <p className="text-xs text-gray-500">
-                      By {post.data.author}
-                    </p>
-                  </div>
-                </article>
-              </Link>
-            ))}
-          </div>
-        </div>
+        {/* Regular Posts with Load More */}
+        <BlogList posts={regularPosts} />
       </div>
       </>
     );
