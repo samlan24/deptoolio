@@ -1,10 +1,12 @@
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { PrismicRichText } from "@prismicio/react";
+import { SliceZone } from "@prismicio/react";
 import { asText } from "@prismicio/helpers";
 import { createClient } from "@/prismicio";
 import Image from "next/image";
 import Link from "next/link";
+import DependencyCta from "../../../slices/DependencyCta";
 
 interface Props {
   params: Promise<{ uid: string }>;
@@ -127,6 +129,7 @@ export default async function BlogPostPage({ params }: Props) {
             />
           )}
           <PrismicRichText field={post.data.content} />
+          <SliceZone slices={post.data.slices} components={{ dependency_cta: DependencyCta }} />
         </article>
       </>
     );
