@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Inter } from "next/font/google";
+import Script from "next/script";
 import Navigation from "./components/Nav";
 import Footer from "./components/Footer";
 import "./globals.css";
@@ -116,6 +117,20 @@ export default function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
         />
+        <Script async src="https://www.googletagmanager.com/gtag/js?id=G-CPB8N6RKJ2"></Script>
+        <Script>
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+          `}
+        </Script>
+
+        <Script>
+          {`
+            gtag('config', 'G-CPB8N6RKJ2');
+          `}
+        </Script>
       </head>
       <body className={`${inter.variable} antialiased`}>
         <Navigation />
