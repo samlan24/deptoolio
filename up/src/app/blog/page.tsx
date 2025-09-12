@@ -11,16 +11,17 @@ const blogStructuredData = {
   "@type": "Blog",
   name: "Pacgie Security Blog",
   url: "https://www.pacgie.com/blog",
-  description: "Expert security guides for developers. Learn dependency management, vulnerability prevention, and package security.",
+  description:
+    "Expert security guides for developers. Learn dependency management, vulnerability prevention, and package security.",
   publisher: {
     "@type": "Organization",
     name: "Pacgie",
-    url: "https://www.pacgie.com"
+    url: "https://www.pacgie.com",
   },
   mainEntityOfPage: {
     "@type": "WebPage",
-    "@id": "https://www.pacgie.com/blog"
-  }
+    "@id": "https://www.pacgie.com/blog",
+  },
 };
 
 export default async function BlogPage() {
@@ -28,7 +29,9 @@ export default async function BlogPage() {
 
   try {
     // Fetch the blog landing page content
-    const page = await client.getSingle("pacgie_blog");
+    const page = await client.getSingle("pacgie_blog", {
+      fetchOptions: { next: { tags: ["prismic"] } },
+    });
 
     // Fetch all blog posts, sorted by published date
     const blogPosts = await client.getAllByType("blog_posts", {
@@ -36,85 +39,87 @@ export default async function BlogPage() {
         { field: "my.blog_post.published_date", direction: "desc" },
         { field: "document.first_publication_date", direction: "desc" },
       ],
+      fetchOptions: { next: { tags: ["prismic"] } },
     });
 
     // Separate featured post and regular posts
     const featuredPost = blogPosts.find((post) => post.data.featured_post);
-    const regularPosts = blogPosts
-      .filter((post) => !post.data.featured_post);
+    const regularPosts = blogPosts.filter((post) => !post.data.featured_post);
 
     return (
       <>
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(blogStructuredData) }}
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(blogStructuredData),
+          }}
         />
-      <div className="max-w-7xl mx-auto px-4 py-8 pt-20">
-        {/* Page Header */}
-        <div className="text-center mb-12">
-          <PrismicRichText
-            field={page.data.page_title}
-            components={{
-              heading1: ({ children }) => (
-                <h1 className="text-4xl font-bold mb-4">{children}</h1>
-              ),
-            }}
-          />
+        <div className="max-w-7xl mx-auto px-4 py-8 pt-20">
+          {/* Page Header */}
+          <div className="text-center mb-12">
+            <PrismicRichText
+              field={page.data.page_title}
+              components={{
+                heading1: ({ children }) => (
+                  <h1 className="text-4xl font-bold mb-4">{children}</h1>
+                ),
+              }}
+            />
 
-          <div className="text-lg text-gray-400 max-w-3xl mx-auto">
-            <PrismicRichText field={page.data.hero_section} />
+            <div className="text-lg text-gray-400 max-w-3xl mx-auto">
+              <PrismicRichText field={page.data.hero_section} />
+            </div>
           </div>
-        </div>
 
-        {/* Featured Post */}
-        {featuredPost && (
-          <div className="mb-12">
-            <h2 className="text-2xl font-semibold mb-6">Featured Guide</h2>
-            <Link href={`/blog/${featuredPost.uid}`}>
-              <div className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300">
-                <div className="md:flex">
-                  <div className="md:w-1/2">
-                    {featuredPost.data.featured_image?.url && (
-                      <Image
-                        src={featuredPost.data.featured_image.url}
-                        alt={featuredPost.data.featured_image.alt || ""}
-                        width={600}
-                        height={400}
-                        className="w-full h-64 md:h-full object-cover"
-                      />
-                    )}
-                  </div>
-                  <div className="md:w-1/2 p-8">
-                    <div className="flex items-center mb-3">
-                      <span className="bg-blue-100 text-blue-800 text-sm px-3 py-1 rounded-full">
-                        {featuredPost.data.category}
-                      </span>
-                      <span className="text-gray-500 text-sm ml-4">
-                        {new Date(
-                          featuredPost.data.published_date ||
-                            featuredPost.first_publication_date
-                        ).toLocaleDateString()}
-                      </span>
+          {/* Featured Post */}
+          {featuredPost && (
+            <div className="mb-12">
+              <h2 className="text-2xl font-semibold mb-6">Featured Guide</h2>
+              <Link href={`/blog/${featuredPost.uid}`}>
+                <div className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300">
+                  <div className="md:flex">
+                    <div className="md:w-1/2">
+                      {featuredPost.data.featured_image?.url && (
+                        <Image
+                          src={featuredPost.data.featured_image.url}
+                          alt={featuredPost.data.featured_image.alt || ""}
+                          width={600}
+                          height={400}
+                          className="w-full h-64 md:h-full object-cover"
+                        />
+                      )}
                     </div>
-                    <h3 className="text-2xl font-bold mb-4 text-gray-900">
-                      <PrismicRichText field={featuredPost.data.title} />
-                    </h3>
-                    <div className="text-gray-600 mb-4">
-                      <PrismicRichText field={featuredPost.data.excerpt} />
+                    <div className="md:w-1/2 p-8">
+                      <div className="flex items-center mb-3">
+                        <span className="bg-blue-100 text-blue-800 text-sm px-3 py-1 rounded-full">
+                          {featuredPost.data.category}
+                        </span>
+                        <span className="text-gray-500 text-sm ml-4">
+                          {new Date(
+                            featuredPost.data.published_date ||
+                              featuredPost.first_publication_date
+                          ).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <h3 className="text-2xl font-bold mb-4 text-gray-900">
+                        <PrismicRichText field={featuredPost.data.title} />
+                      </h3>
+                      <div className="text-gray-600 mb-4">
+                        <PrismicRichText field={featuredPost.data.excerpt} />
+                      </div>
+                      <p className="text-sm text-gray-800">
+                        By {featuredPost.data.author}
+                      </p>
                     </div>
-                    <p className="text-sm text-gray-800">
-                      By {featuredPost.data.author}
-                    </p>
                   </div>
                 </div>
-              </div>
-            </Link>
-          </div>
-        )}
+              </Link>
+            </div>
+          )}
 
-        {/* Regular Posts with Load More */}
-        <BlogList posts={regularPosts} />
-      </div>
+          {/* Regular Posts with Load More */}
+          <BlogList posts={regularPosts} />
+        </div>
       </>
     );
   } catch (error) {
@@ -127,7 +132,9 @@ export async function generateMetadata(): Promise<Metadata> {
   const client = createClient();
 
   try {
-    const page = await client.getSingle("pacgie_blog");
+    const page = await client.getSingle("pacgie_blog", {
+      fetchOptions: { next: { tags: ["prismic"] } },
+    });
 
     return {
       title:
