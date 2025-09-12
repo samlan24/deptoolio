@@ -61,7 +61,7 @@ export default async function BlogPage() {
               field={page.data.page_title}
               components={{
                 heading1: ({ children }) => (
-                  <h1 className="text-4xl font-bold mb-4 text-gray-700">{children}</h1>
+                  <h1 className="text-4xl font-bold mb-4">{children}</h1>
                 ),
               }}
             />
@@ -101,7 +101,7 @@ export default async function BlogPage() {
                           ).toLocaleDateString()}
                         </span>
                       </div>
-                      <h3 className="text-2xl font-bold mb-4 text-gray-900">
+                      <h3 className="text-2xl font-bold mb-4 text-black">
                         <PrismicRichText field={featuredPost.data.title} />
                       </h3>
                       <div className="text-gray-600 mb-4">
