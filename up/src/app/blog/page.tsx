@@ -61,7 +61,7 @@ export default async function BlogPage() {
             }}
           />
 
-          <div className="text-lg text-gray-600 max-w-3xl mx-auto">
+          <div className="text-lg text-gray-400 max-w-3xl mx-auto">
             <PrismicRichText field={page.data.hero_section} />
           </div>
         </div>
