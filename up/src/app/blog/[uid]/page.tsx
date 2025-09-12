@@ -1,13 +1,10 @@
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { PrismicRichText } from "@prismicio/react";
-import { SliceZone } from "@prismicio/react";
 import { asText } from "@prismicio/helpers";
 import { createClient } from "@/prismicio";
 import Image from "next/image";
 import Link from "next/link";
-
-import DependencyCta  from "../../../slices/DependencyCta";
 
 interface Props {
   params: Promise<{ uid: string }>;
@@ -91,13 +88,8 @@ const generateBlogPostStructuredData = (post: any, uid: string) => ({
   url: `https://www.pacgie.com/blog/${uid}`,
 });
 
-const components = {
-  dependencyCta: DependencyCta,
-  // Add other slice components here as needed
-};
-
 export default async function BlogPostPage({ params }: Props) {
-  const { uid } = await params;
+  const { uid } = await params; // Await the params here too
   const client = createClient();
 
   try {
@@ -134,7 +126,7 @@ export default async function BlogPostPage({ params }: Props) {
               className="mb-6 object-cover"
             />
           )}
-          <SliceZone slices={post.data.content} components={components} />
+          <PrismicRichText field={post.data.content} />
         </article>
       </>
     );
