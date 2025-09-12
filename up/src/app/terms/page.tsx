@@ -1,8 +1,8 @@
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy",
-  description: "Read our privacy policy to understand how we handle your data.",
+  title: "Terms & Conditions - Pacgie",
+  description: "Read our terms & conditions",
 };
 
 export default function TermsPage() {
