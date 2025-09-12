@@ -11,13 +11,44 @@ interface Props {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { uid } = await params; // Await the params here
+  const { uid } = await params;
   const client = createClient();
   try {
     const post = await client.getByUID("blog_posts", uid);
+
     return {
-      title: asText(post.data.meta_title) || "Blog Post",
-      description: asText(post.data.meta_description) || "",
+      title:
+        asText(post.data.meta_title) || asText(post.data.title) || "Blog Post",
+      description:
+        asText(post.data.meta_description) || asText(post.data.excerpt) || "",
+      authors: [{ name: post.data.author || "Pacgie" }],
+      openGraph: {
+        title: asText(post.data.meta_title) || asText(post.data.title),
+        description:
+          asText(post.data.meta_description) || asText(post.data.excerpt),
+        type: "article",
+        url: `https://www.pacgie.com/blog/${uid}`,
+        siteName: "Pacgie",
+        images: post.data.featured_image?.url
+          ? [
+              {
+                url: post.data.featured_image.url,
+                alt: post.data.featured_image.alt || "",
+              },
+            ]
+          : [],
+        publishedTime: post.data.published_date || post.first_publication_date,
+        authors: [post.data.author || "Pacgie"],
+      },
+      twitter: {
+        card: "summary_large_image",
+        title: asText(post.data.meta_title) || asText(post.data.title),
+        description:
+          asText(post.data.meta_description) || asText(post.data.excerpt),
+      },
+      alternates: {
+        canonical: `https://www.pacgie.com/blog/${uid}`,
+      },
     };
   } catch {
     return {
@@ -26,6 +57,30 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     };
   }
 }
+
+const generateBlogPostStructuredData = (post: any, uid: string) => ({
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  headline: asText(post.data.title),
+  description: asText(post.data.excerpt) || asText(post.data.meta_description) || "",
+  image: post.data.featured_image?.url || "",
+  author: {
+    "@type": "Person",
+    name: post.data.author || "Pacgie"
+  },
+  publisher: {
+    "@type": "Organization",
+    name: "Pacgie",
+    url: "https://www.pacgie.com"
+  },
+  datePublished: post.data.published_date || post.first_publication_date,
+  dateModified: post.last_publication_date || post.data.published_date || post.first_publication_date,
+  mainEntityOfPage: {
+    "@type": "WebPage",
+    "@id": `https://www.pacgie.com/blog/${uid}`
+  },
+  url: `https://www.pacgie.com/blog/${uid}`
+});
 
 export default async function BlogPostPage({ params }: Props) {
   const { uid } = await params; // Await the params here too
@@ -36,6 +91,13 @@ export default async function BlogPostPage({ params }: Props) {
     if (!post) return notFound();
 
     return (
+      <>
+      <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{
+        __html: JSON.stringify(generateBlogPostStructuredData(post, uid))
+      }}
+    />
       <article className="max-w-4xl mx-auto p-8 pt-20">
         <Link
           href="/blog"
@@ -57,6 +119,7 @@ export default async function BlogPostPage({ params }: Props) {
         )}
         <PrismicRichText field={post.data.content} />
       </article>
+      </>
     );
   } catch (error) {
     console.error("Error fetching blog post:", error);
