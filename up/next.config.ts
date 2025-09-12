@@ -14,9 +14,16 @@ const nextConfig: NextConfig = {
         source: "/(.*)",
         headers: [
           {
-            key: "Content-Security-Policy",
-            value:
-              "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https: data: blob:; frame-ancestors 'self';",
+           key: "Content-Security-Policy",
+            value: `
+              default-src 'self';
+              script-src 'self' 'unsafe-eval' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com;
+              style-src 'self' 'unsafe-inline';
+              img-src 'self' data: https: https://www.google-analytics.com;
+              font-src 'self' data:;
+              connect-src 'self' https: https://www.google-analytics.com https://region1.google-analytics.com data: blob:;
+              frame-ancestors 'self';
+            `.replace(/\s{2,}/g, " "),
           },
           { key: "X-Frame-Options", value: "SAMEORIGIN" },
           { key: "X-Content-Type-Options", value: "nosniff" },
