@@ -5,6 +5,23 @@ import { createClient } from "@/prismicio";
 import Link from "next/link";
 import Image from "next/image";
 
+const blogStructuredData = {
+  "@context": "https://schema.org",
+  "@type": "Blog",
+  name: "Pacgie Security Blog",
+  url: "https://www.pacgie.com/blog",
+  description: "Expert security guides for developers. Learn dependency management, vulnerability prevention, and package security.",
+  publisher: {
+    "@type": "Organization",
+    name: "Pacgie",
+    url: "https://www.pacgie.com"
+  },
+  mainEntityOfPage: {
+    "@type": "WebPage",
+    "@id": "https://www.pacgie.com/blog"
+  }
+};
+
 export default async function BlogPage() {
   const client = createClient();
 
@@ -27,6 +44,11 @@ export default async function BlogPage() {
       .slice(0, 8);
 
     return (
+      <>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(blogStructuredData) }}
+        />
       <div className="max-w-7xl mx-auto px-4 py-8 pt-20">
         {/* Page Header */}
         <div className="text-center mb-12">
@@ -134,6 +156,7 @@ export default async function BlogPage() {
           </div>
         </div>
       </div>
+      </>
     );
   } catch (error) {
     console.error("Error fetching blog data:", error);
@@ -148,23 +171,48 @@ export async function generateMetadata(): Promise<Metadata> {
     const page = await client.getSingle("pacgie_blog");
 
     return {
-      title: page.data.meta_title || "Security Guides",
+      title:
+        page.data.meta_title ||
+        "Pacgie Security Blog - Dependency Management & Vulnerability Guides",
       description:
         page.data.meta_description ||
-        "Expert guides on dependency security and vulnerability management",
+        "Expert security guides for developers. Learn dependency management, vulnerability prevention, and package security across Node.js, Python, PHP, Go, and more programming languages.",
+      keywords: [
+        "dependency security",
+        "vulnerability management",
+        "package security",
+        "developer guides",
+        "dependency scanning",
+        "security best practices",
+      ],
       openGraph: {
-        title: page.data.meta_title || "Security Guides",
+        title:
+          page.data.meta_title ||
+          "Pacgie Security Blog - Dependency Management & Vulnerability Guides",
         description:
           page.data.meta_description ||
-          "Expert guides on dependency security and vulnerability management",
+          "Expert security guides for developers. Learn dependency management, vulnerability prevention, and package security across Node.js, Python, PHP, Go, and more programming languages.",
+        type: "website",
+        url: "https://www.pacgie.com/blog",
+        siteName: "Pacgie",
         images: page.data.meta_image?.url ? [page.data.meta_image.url] : [],
+      },
+      twitter: {
+        card: "summary_large_image",
+        title: page.data.meta_title || "Pacgie Security Blog",
+        description:
+          page.data.meta_description || "Expert security guides for developers",
+      },
+      alternates: {
+        canonical: "https://www.pacgie.com/blog",
       },
     };
   } catch (error) {
     return {
-      title: "Security Guides",
+      title:
+        "Pacgie Security Blog - Dependency Management & Vulnerability Guides",
       description:
-        "Expert guides on dependency security and vulnerability management",
+        "Expert security guides for developers. Learn dependency management, vulnerability prevention, and package security across Node.js, Python, PHP, Go, and more programming languages.",
     };
   }
 }
