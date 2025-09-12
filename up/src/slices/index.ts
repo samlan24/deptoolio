@@ -2,4 +2,6 @@
 
 import dynamic from "next/dynamic";
 
-export const components = {};
+export const components = {
+  dependency_cta: dynamic(() => import("./DependencyCta")),
+};

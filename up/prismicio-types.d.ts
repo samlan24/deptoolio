@@ -69,6 +69,8 @@ type ContentRelationshipFieldWithData<
   >;
 }[Exclude<TCustomType[number], string>["id"]];
 
+type BlogPostsDocumentDataSlicesSlice = DependencyCtaSlice;
+
 /**
  * Content for blog_posts documents
  */
@@ -115,7 +117,18 @@ interface BlogPostsDocumentData {
    * - **Tab**: Main
    * - **Documentation**: https://prismic.io/docs/fields/rich-text
    */
-  content: prismic.RichTextField /**
+  content: prismic.RichTextField;
+
+  /**
+   * Slice Zone field in *blog_posts*
+   *
+   * - **Field Type**: Slice Zone
+   * - **Placeholder**: *None*
+   * - **API ID Path**: blog_posts.slices[]
+   * - **Tab**: Main
+   * - **Documentation**: https://prismic.io/docs/slices
+   */
+  slices: prismic.SliceZone<BlogPostsDocumentDataSlicesSlice> /**
    * Author field in *blog_posts*
    *
    * - **Field Type**: Text
@@ -278,6 +291,98 @@ export type PacgieBlogDocument<Lang extends string = string> =
 
 export type AllDocumentTypes = BlogPostsDocument | PacgieBlogDocument;
 
+/**
+ * Primary content in *DependencyCta → Default → Primary*
+ */
+export interface DependencyCtaSliceDefaultPrimary {
+  /**
+   * heading field in *DependencyCta → Default → Primary*
+   *
+   * - **Field Type**: Text
+   * - **Placeholder**: heading
+   * - **API ID Path**: dependency_cta.default.primary.heading
+   * - **Documentation**: https://prismic.io/docs/fields/text
+   */
+  heading: prismic.KeyTextField;
+
+  /**
+   * subtext field in *DependencyCta → Default → Primary*
+   *
+   * - **Field Type**: Text
+   * - **Placeholder**: description
+   * - **API ID Path**: dependency_cta.default.primary.subtext
+   * - **Documentation**: https://prismic.io/docs/fields/text
+   */
+  subtext: prismic.KeyTextField;
+
+  /**
+   * button text field in *DependencyCta → Default → Primary*
+   *
+   * - **Field Type**: Text
+   * - **Placeholder**: button text
+   * - **API ID Path**: dependency_cta.default.primary.button_text
+   * - **Documentation**: https://prismic.io/docs/fields/text
+   */
+  button_text: prismic.KeyTextField;
+
+  /**
+   * button link field in *DependencyCta → Default → Primary*
+   *
+   * - **Field Type**: Link
+   * - **Placeholder**: *None*
+   * - **API ID Path**: dependency_cta.default.primary.button_link
+   * - **Documentation**: https://prismic.io/docs/fields/link
+   */
+  button_link: prismic.LinkField<
+    string,
+    string,
+    unknown,
+    prismic.FieldState,
+    never
+  >;
+
+  /**
+   * show icon field in *DependencyCta → Default → Primary*
+   *
+   * - **Field Type**: Boolean
+   * - **Placeholder**: *None*
+   * - **Default Value**: false
+   * - **API ID Path**: dependency_cta.default.primary.show_icon
+   * - **Documentation**: https://prismic.io/docs/fields/boolean
+   */
+  show_icon: prismic.BooleanField;
+}
+
+/**
+ * Default variation for DependencyCta Slice
+ *
+ * - **API ID**: `default`
+ * - **Description**: Default
+ * - **Documentation**: https://prismic.io/docs/slices
+ */
+export type DependencyCtaSliceDefault = prismic.SharedSliceVariation<
+  "default",
+  Simplify<DependencyCtaSliceDefaultPrimary>,
+  never
+>;
+
+/**
+ * Slice variation for *DependencyCta*
+ */
+type DependencyCtaSliceVariation = DependencyCtaSliceDefault;
+
+/**
+ * DependencyCta Shared Slice
+ *
+ * - **API ID**: `dependency_cta`
+ * - **Description**: DependencyCta
+ * - **Documentation**: https://prismic.io/docs/slices
+ */
+export type DependencyCtaSlice = prismic.SharedSlice<
+  "dependency_cta",
+  DependencyCtaSliceVariation
+>;
+
 declare module "@prismicio/client" {
   interface CreateClient {
     (
@@ -301,10 +406,15 @@ declare module "@prismicio/client" {
     export type {
       BlogPostsDocument,
       BlogPostsDocumentData,
+      BlogPostsDocumentDataSlicesSlice,
       PacgieBlogDocument,
       PacgieBlogDocumentData,
       PacgieBlogDocumentDataSlicesSlice,
       AllDocumentTypes,
+      DependencyCtaSlice,
+      DependencyCtaSliceDefaultPrimary,
+      DependencyCtaSliceVariation,
+      DependencyCtaSliceDefault,
     };
   }
 }

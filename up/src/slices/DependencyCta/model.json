@@ -1,0 +1,60 @@
+{
+  "id": "dependency_cta",
+  "type": "SharedSlice",
+  "name": "DependencyCta",
+  "description": "DependencyCta",
+  "variations": [
+    {
+      "id": "default",
+      "name": "Default",
+      "docURL": "...",
+      "version": "initial",
+      "description": "Default",
+      "imageUrl": "",
+      "primary": {
+        "heading": {
+          "type": "Text",
+          "config": {
+            "label": "heading",
+            "placeholder": "heading"
+          }
+        },
+        "subtext": {
+          "type": "Text",
+          "config": {
+            "label": "subtext",
+            "placeholder": "description"
+          }
+        },
+        "button_text": {
+          "type": "Text",
+          "config": {
+            "label": "button text",
+            "placeholder": "button text"
+          }
+        },
+        "button_link": {
+          "type": "Link",
+          "config": {
+            "label": "button link",
+            "placeholder": "",
+            "select": null,
+            "allowTargetBlank": true,
+            "allowText": true,
+            "repeat": false
+          }
+        },
+        "show_icon": {
+          "type": "Boolean",
+          "config": {
+            "label": "show icon",
+            "placeholder_false": "false",
+            "placeholder_true": "true",
+            "default_value": false
+          }
+        }
+      },
+      "items": {}
+    }
+  ]
+}
