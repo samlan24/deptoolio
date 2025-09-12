@@ -1,6 +1,7 @@
 import { Metadata } from "next";
+import React, { ReactNode } from "react";
 import { notFound } from "next/navigation";
-import { PrismicRichText } from "@prismicio/react";
+import { PrismicRichText, JSXMapSerializer } from "@prismicio/react";
 import { SliceZone } from "@prismicio/react";
 import { asText } from "@prismicio/helpers";
 import { createClient } from "@/prismicio";
@@ -90,6 +91,56 @@ const generateBlogPostStructuredData = (post: any, uid: string) => ({
   url: `https://www.pacgie.com/blog/${uid}`,
 });
 
+const richTextComponents: JSXMapSerializer = {
+  heading1: ({ children }) => (
+    <h1 className="text-3xl font-bold my-6">{children}</h1>
+  ),
+  heading2: ({ children }) => (
+    <h2 className="text-2xl font-semibold my-5">{children}</h2>
+  ),
+  heading3: ({ children }) => (
+    <h3 className="text-xl font-semibold my-4">{children}</h3>
+  ),
+  paragraph: ({ children }) => (
+    <p className="my-4 leading-relaxed text-gray-800">{children}</p>
+  ),
+  preformatted: ({ children }) => (
+    <pre className="bg-gray-100 p-4 rounded my-6 overflow-x-auto">
+      {children}
+    </pre>
+  ),
+  strong: ({ children }) => (
+    <strong className="font-semibold">{children}</strong>
+  ),
+  em: ({ children }) => <em className="italic">{children}</em>,
+  listItem: ({ children }) => <li className="ml-6 list-disc">{children}</li>,
+  oListItem: ({ children }) => (
+    <li className="ml-6 list-decimal">{children}</li>
+  ),
+  list: ({ children }) => <ul className="my-4">{children}</ul>,
+  oList: ({ children }) => <ol className="my-4">{children}</ol>,
+  hyperlink: ({ children, node }) => {
+    const url = node.data.url ?? "";
+    // Use optional check for target since it might be undefined
+    const target =
+      typeof (node.data as any).target === "string"
+        ? (node.data as any).target
+        : "_self";
+    const rel = target === "_blank" ? "noopener noreferrer" : undefined;
+
+    return (
+      <a
+        href={url}
+        target={target}
+        rel={rel}
+        className="text-blue-600 underline hover:text-blue-800"
+      >
+        {children}
+      </a>
+    );
+  },
+};
+
 export default async function BlogPostPage({ params }: Props) {
   const { uid } = await params; // Await the params here too
   const client = createClient();
@@ -128,8 +179,14 @@ export default async function BlogPostPage({ params }: Props) {
               className="mb-6 object-cover"
             />
           )}
-          <PrismicRichText field={post.data.content} />
-          <SliceZone slices={post.data.slices} components={{ dependency_cta: DependencyCta }} />
+          <PrismicRichText
+            field={post.data.content}
+            components={richTextComponents}
+          />
+          <SliceZone
+            slices={post.data.slices}
+            components={{ dependency_cta: DependencyCta }}
+          />
         </article>
       </>
     );
