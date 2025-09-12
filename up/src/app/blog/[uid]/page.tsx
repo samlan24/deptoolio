@@ -102,7 +102,7 @@ const richTextComponents: JSXMapSerializer = {
     <h3 className="text-xl font-semibold my-4">{children}</h3>
   ),
   paragraph: ({ children }) => (
-    <p className="my-4 leading-relaxed text-gray-800">{children}</p>
+    <p className="my-4 leading-relaxed text-white">{children}</p>
   ),
   preformatted: ({ children }) => (
     <pre className="bg-gray-100 p-4 rounded my-6 overflow-x-auto">
