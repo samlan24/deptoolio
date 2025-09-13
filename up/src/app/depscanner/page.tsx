@@ -36,6 +36,7 @@ export default async function DepScannerPage() {
       <p className="text-center text-gray-400 mb-8">
         Connect a <strong className="text-white">Public</strong> GitHub repository and scan it for unused and missing dependencies.
       </p>
+      <p className="text-sm text-center text-gray-400 ">supports <strong className="text-white">JavaScript</strong> and <strong className="text-white">TypeScript</strong> projects.</p>
       <DepScanner />
     </main>
   );
