@@ -56,7 +56,7 @@ export default async function FileCheck() {
             Dependency Checker
           </h1>
           <p className="text-gray-200 mb-8">
-            Upload your dependency files to check for outdated packages
+            Upload your dependency files to check for outdated and vulnerable packages
           </p>
         </header>
 

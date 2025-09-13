@@ -36,8 +36,7 @@ export default async function Dashboard() {
           Repository Dependency Scanner
         </h1>
         <p className="text-gray-400 text-center mb-8">
-          Connect your GitHub account and scan repositories for outdated,
-          unused, and vulnerable dependencies.
+          Connect your GitHub account and scan repositories for outdated and vulnerable dependencies.
         </p>
       </div>
 
