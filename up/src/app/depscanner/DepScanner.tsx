@@ -69,9 +69,7 @@ export default function DepScanner() {
       setHasMore(data.repos.length === perPage);
       setPage(pageNumber);
     } catch (err) {
-      setError(
-        "Failed to load repositories. Make sure you signed in with GitHub."
-      );
+      setError("Failed to load repositories. Make sure you signed in with GitHub.");
     } finally {
       setLoading(false);
       setLoadingMore(false);
@@ -105,10 +103,7 @@ export default function DepScanner() {
 
   const loadRepoOptions = async (
     search: string,
-    loadedOptions: import("react-select").OptionsOrGroups<
-      Repo,
-      GroupBase<Repo>
-    >,
+    loadedOptions: import("react-select").OptionsOrGroups<Repo, GroupBase<Repo>>,
     additional?: { page: number }
   ): Promise<{
     options: Repo[];
@@ -134,15 +129,11 @@ export default function DepScanner() {
       setError("Please select a repository and a folder");
       return;
     }
-
     setScanning(true);
     setResults(null);
     setError("");
-
     try {
       const [owner, repoName] = selectedRepo.full_name.split("/");
-
-      // Start the scan
       const response = await fetch("/api/scan-unused-missing", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -152,41 +143,15 @@ export default function DepScanner() {
           path: selectedFolder.path,
         }),
       });
-
       if (!response.ok) {
         const data = await response.json();
         throw new Error(data.error || "Scan failed");
       }
-
-      const { jobId } = await response.json();
-
-      // Poll for results
-      const pollForResults = async () => {
-        try {
-          const statusResponse = await fetch(`/api/scan-status/${jobId}`);
-          const statusData = await statusResponse.json();
-
-          if (statusData.status === "completed") {
-            setResults(statusData.result);
-            setScanning(false);
-          } else if (statusData.status === "failed") {
-            setError(statusData.error || "Scan failed");
-            setScanning(false);
-          } else {
-            // Still processing, poll again in 2 seconds
-            setTimeout(pollForResults, 2000);
-          }
-        } catch (pollError) {
-          setError("Failed to check scan status");
-          setScanning(false);
-        }
-      };
-
-      pollForResults();
+      const data: UnusedMissingResults = await response.json();
+      setResults(data);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to scan dependencies"
-      );
+      setError(err instanceof Error ? err.message : "Failed to scan dependencies");
+    } finally {
       setScanning(false);
     }
   };
@@ -323,21 +288,15 @@ export default function DepScanner() {
             {/* Summary Stats */}
             <div className="grid grid-cols-3 gap-4 mb-6">
               <div className="bg-white rounded-lg shadow p-4 text-center">
-                <div className="text-2xl font-bold text-gray-900">
-                  {stats.total}
-                </div>
+                <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
                 <div className="text-sm text-gray-600">Total Issues</div>
               </div>
               <div className="bg-white rounded-lg shadow p-4 text-center">
-                <div className="text-2xl font-bold text-yellow-600">
-                  {stats.unused}
-                </div>
+                <div className="text-2xl font-bold text-yellow-600">{stats.unused}</div>
                 <div className="text-sm text-gray-600">Unused</div>
               </div>
               <div className="bg-white rounded-lg shadow p-4 text-center">
-                <div className="text-2xl font-bold text-red-600">
-                  {stats.missing}
-                </div>
+                <div className="text-2xl font-bold text-red-600">{stats.missing}</div>
                 <div className="text-sm text-gray-600">Missing</div>
               </div>
             </div>
@@ -398,8 +357,7 @@ export default function DepScanner() {
                       All Dependencies Look Good!
                     </h3>
                     <p className="text-gray-600">
-                      No unused or missing dependencies were found in this
-                      folder.
+                      No unused or missing dependencies were found in this folder.
                     </p>
                   </div>
                 )}
@@ -415,10 +373,7 @@ export default function DepScanner() {
                 <ul className="text-sm text-blue-700 space-y-2">
                   {results.unusedDependencies.length > 0 && (
                     <li className="flex flex-col space-y-1">
-                      <span>
-                        {" "}
-                        • Remove unused dependencies to reduce bundle size:{" "}
-                      </span>
+                      <span> • Remove unused dependencies to reduce bundle size: </span>
                       <code className="bg-blue-100 text-blue-900 px-2 py-1 rounded text-xs ml-4">
                         npm uninstall {results.unusedDependencies.join(" ")}
                       </code>
