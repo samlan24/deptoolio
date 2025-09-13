@@ -51,31 +51,6 @@ export default function DepScanner() {
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
 
-  const fetchRepos = async (pageNumber = 1) => {
-    setLoading(pageNumber === 1);
-    setLoadingMore(pageNumber > 1);
-    setError("");
-    try {
-      const response = await fetch(
-        `/api/github/repos?page=${pageNumber}&per_page=${perPage}`
-      );
-      if (!response.ok) throw new Error("Failed to fetch repositories");
-      const data = await response.json();
-      if (pageNumber === 1) {
-        setRepos(data.repos);
-      } else {
-        setRepos((prev) => [...prev, ...data.repos]);
-      }
-      setHasMore(data.repos.length === perPage);
-      setPage(pageNumber);
-    } catch (err) {
-      setError("Failed to load repositories. Make sure you signed in with GitHub.");
-    } finally {
-      setLoading(false);
-      setLoadingMore(false);
-    }
-  };
-
   const loadFolders = async (repo: Repo) => {
     setSelectedRepo(repo);
     setSelectedFolder(null);
@@ -103,7 +78,10 @@ export default function DepScanner() {
 
   const loadRepoOptions = async (
     search: string,
-    loadedOptions: import("react-select").OptionsOrGroups<Repo, GroupBase<Repo>>,
+    loadedOptions: import("react-select").OptionsOrGroups<
+      Repo,
+      GroupBase<Repo>
+    >,
     additional?: { page: number }
   ): Promise<{
     options: Repo[];
@@ -117,11 +95,48 @@ export default function DepScanner() {
     );
     if (!response.ok) throw new Error("Failed to fetch repositories");
     const data = await response.json();
+
+    // Filter to only public repos
+    const publicRepos = (data.repos || []).filter(
+      (repo: Repo) => !repo.private
+    );
+
     return {
-      options: data.repos || [],
+      options: publicRepos,
       hasMore: data.repos.length === perPage,
       additional: { page: page + 1 },
     };
+  };
+
+  const fetchRepos = async (pageNumber = 1) => {
+    setLoading(pageNumber === 1);
+    setLoadingMore(pageNumber > 1);
+    setError("");
+    try {
+      const response = await fetch(
+        `/api/github/repos?page=${pageNumber}&per_page=${perPage}`
+      );
+      if (!response.ok) throw new Error("Failed to fetch repositories");
+      const data = await response.json();
+
+      // Filter to only public repos
+      const publicRepos = data.repos.filter((repo: Repo) => !repo.private);
+
+      if (pageNumber === 1) {
+        setRepos(publicRepos);
+      } else {
+        setRepos((prev) => [...prev, ...publicRepos]);
+      }
+      setHasMore(data.repos.length === perPage);
+      setPage(pageNumber);
+    } catch (err) {
+      setError(
+        "Failed to load repositories. Make sure you signed in with GitHub."
+      );
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
   };
 
   const handleScan = async () => {
@@ -150,7 +165,9 @@ export default function DepScanner() {
       const data: UnusedMissingResults = await response.json();
       setResults(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to scan dependencies");
+      setError(
+        err instanceof Error ? err.message : "Failed to scan dependencies"
+      );
     } finally {
       setScanning(false);
     }
@@ -288,15 +305,21 @@ export default function DepScanner() {
             {/* Summary Stats */}
             <div className="grid grid-cols-3 gap-4 mb-6">
               <div className="bg-white rounded-lg shadow p-4 text-center">
-                <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
+                <div className="text-2xl font-bold text-gray-900">
+                  {stats.total}
+                </div>
                 <div className="text-sm text-gray-600">Total Issues</div>
               </div>
               <div className="bg-white rounded-lg shadow p-4 text-center">
-                <div className="text-2xl font-bold text-yellow-600">{stats.unused}</div>
+                <div className="text-2xl font-bold text-yellow-600">
+                  {stats.unused}
+                </div>
                 <div className="text-sm text-gray-600">Unused</div>
               </div>
               <div className="bg-white rounded-lg shadow p-4 text-center">
-                <div className="text-2xl font-bold text-red-600">{stats.missing}</div>
+                <div className="text-2xl font-bold text-red-600">
+                  {stats.missing}
+                </div>
                 <div className="text-sm text-gray-600">Missing</div>
               </div>
             </div>
@@ -357,7 +380,8 @@ export default function DepScanner() {
                       All Dependencies Look Good!
                     </h3>
                     <p className="text-gray-600">
-                      No unused or missing dependencies were found in this folder.
+                      No unused or missing dependencies were found in this
+                      folder.
                     </p>
                   </div>
                 )}
@@ -373,7 +397,10 @@ export default function DepScanner() {
                 <ul className="text-sm text-blue-700 space-y-2">
                   {results.unusedDependencies.length > 0 && (
                     <li className="flex flex-col space-y-1">
-                      <span> • Remove unused dependencies to reduce bundle size: </span>
+                      <span>
+                        {" "}
+                        • Remove unused dependencies to reduce bundle size:{" "}
+                      </span>
                       <code className="bg-blue-100 text-blue-900 px-2 py-1 rounded text-xs ml-4">
                         npm uninstall {results.unusedDependencies.join(" ")}
                       </code>
