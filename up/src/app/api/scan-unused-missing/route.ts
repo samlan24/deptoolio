@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
 
     // Send request to your microservice scan endpoint
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_DEPCHECK_SERVICE_URL}/scan`,
+      "https://deptoolio-services-production.up.railway.app/scan",
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
