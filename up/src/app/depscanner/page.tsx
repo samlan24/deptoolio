@@ -34,7 +34,7 @@ export default async function DepScannerPage() {
         Unused & Missing Dependency Scanner
       </h1>
       <p className="text-center text-gray-400 mb-8">
-        Connect a GitHub repository and scan it for unused and missing dependencies.
+        Connect a <strong className="text-white">Public</strong> GitHub repository and scan it for unused and missing dependencies.
       </p>
       <DepScanner />
     </main>
