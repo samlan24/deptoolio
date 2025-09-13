@@ -43,7 +43,7 @@ const DependencyCta: FC<DependencyCtaProps> = ({ slice }) => {
         </div>
 
         <p className="text-slate-300 mb-6 text-base leading-relaxed">
-          field={slice.primary.subtext}
+          {slice.primary.subtext}
         </p>
 
         <PrismicLink
