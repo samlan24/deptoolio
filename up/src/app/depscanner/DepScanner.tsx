@@ -1,11 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   CheckCircle,
   AlertTriangle,
   XCircle,
-  Package,
   Search,
   Folder,
 } from "lucide-react";
@@ -22,6 +21,7 @@ import type { GroupBase } from "react-select";
 interface UnusedMissingResults {
   unusedDependencies: string[];
   missingDependencies: string[];
+  language: "node" | "python" | "rust" | "go" | "php" | "c";
 }
 
 interface Repo {
@@ -53,6 +53,54 @@ export default function DepScanner() {
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
 
+  // ------------------ HELPERS ------------------
+
+  const getFixCommands = (results: UnusedMissingResults) => {
+    switch (results.language) {
+      case "python":
+        return {
+          remove: `pip uninstall ${results.unusedDependencies.join(" ")}`,
+          install: `pip install ${results.missingDependencies.join(" ")}`
+        };
+      case "rust":
+        return {
+          remove: `cargo remove ${results.unusedDependencies.join(" ")}`,
+          install: `cargo add ${results.missingDependencies.join(" ")}`
+        };
+      case "go":
+        return {
+          remove: `go mod tidy`,
+          install: `go get ${results.missingDependencies.join(" ")}`
+        };
+      case "php":
+        return {
+          remove: `composer remove ${results.unusedDependencies.join(" ")}`,
+          install: `composer require ${results.missingDependencies.join(" ")}`
+        };
+      case "c":
+        return {
+          remove: `# remove unused (use IWYU/clang-tidy)`,
+          install: `# add missing manually in your Makefile or CMakeLists.txt`
+        };
+      default: // node
+        return {
+          remove: `npm uninstall ${results.unusedDependencies.join(" ")}`,
+          install: `npm install ${results.missingDependencies.join(" ")}`
+        };
+    }
+  };
+
+  const getSummaryStats = () => {
+    if (!results) return { unused: 0, missing: 0, total: 0 };
+    const unused = results.unusedDependencies.length;
+    const missing = results.missingDependencies.length;
+    return { unused, missing, total: unused + missing };
+  };
+
+  const stats = getSummaryStats();
+
+  // ------------------ API CALLS ------------------
+
   const fetchRepos = async (pageNumber = 1) => {
     setLoading(pageNumber === 1);
     setLoadingMore(pageNumber > 1);
@@ -72,10 +120,8 @@ export default function DepScanner() {
       }
       setHasMore(data.repos.length === perPage);
       setPage(pageNumber);
-    } catch (err) {
-      setError(
-        "Failed to load repositories. Make sure you signed in with GitHub."
-      );
+    } catch {
+      setError("Failed to load repositories. Make sure you signed in with GitHub.");
     } finally {
       setLoading(false);
       setLoadingMore(false);
@@ -102,7 +148,7 @@ export default function DepScanner() {
       if (data.length === 0) {
         setError("No folders found in this repository");
       }
-    } catch (err) {
+    } catch {
       setError("Failed to load folders from repository");
     } finally {
       setLoadingFolders(false);
@@ -168,25 +214,13 @@ export default function DepScanner() {
       const data: UnusedMissingResults = await response.json();
       setResults(data);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to scan dependencies"
-      );
+      setError(err instanceof Error ? err.message : "Failed to scan dependencies");
     } finally {
       setScanning(false);
     }
   };
 
-  const getSummaryStats = () => {
-    if (!results) return { unused: 0, missing: 0, total: 0 };
-
-    const unused = results.unusedDependencies.length;
-    const missing = results.missingDependencies.length;
-    const total = unused + missing;
-
-    return { unused, missing, total };
-  };
-
-  const stats = getSummaryStats();
+  // ------------------ UI ------------------
 
   return (
     <div className="min-h-screen pt-20 space-y-6">
@@ -203,6 +237,7 @@ export default function DepScanner() {
             </p>
           </div>
 
+          {/* Repo Loader */}
           {!repos.length ? (
             <div className="text-center">
               <button
@@ -242,6 +277,7 @@ export default function DepScanner() {
                 />
               </div>
 
+              {/* Folders */}
               {selectedRepo && (
                 <div className="space-y-3">
                   {loadingFolders ? (
@@ -278,6 +314,7 @@ export default function DepScanner() {
                     </div>
                   ) : null}
 
+                  {/* Scan Button */}
                   {selectedFolder && (
                     <button
                       onClick={handleScan}
@@ -312,31 +349,25 @@ export default function DepScanner() {
             {/* Summary Stats */}
             <div className="grid grid-cols-3 gap-4 mb-6">
               <div className="bg-white rounded-lg shadow p-4 text-center">
-                <div className="text-2xl font-bold text-gray-900">
-                  {stats.total}
-                </div>
+                <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
                 <div className="text-sm text-gray-600">Total Issues</div>
               </div>
               <div className="bg-white rounded-lg shadow p-4 text-center">
-                <div className="text-2xl font-bold text-yellow-600">
-                  {stats.unused}
-                </div>
+                <div className="text-2xl font-bold text-yellow-600">{stats.unused}</div>
                 <div className="text-sm text-gray-600">Unused</div>
               </div>
               <div className="bg-white rounded-lg shadow p-4 text-center">
-                <div className="text-2xl font-bold text-red-600">
-                  {stats.missing}
-                </div>
+                <div className="text-2xl font-bold text-red-600">{stats.missing}</div>
                 <div className="text-sm text-gray-600">Missing</div>
               </div>
             </div>
 
             <h2 className="text-xl font-semibold text-gray-900 mb-4">
-              Dependency Analysis Results
+              Dependency Analysis Results ({results.language.toUpperCase()})
             </h2>
 
             <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-              {/* Unused Dependencies */}
+              {/* Unused */}
               {results.unusedDependencies.length > 0 && (
                 <div className="px-6 py-4 border-b border-gray-200">
                   <h3 className="text-lg font-medium text-gray-900 mb-3 flex items-center">
@@ -344,8 +375,8 @@ export default function DepScanner() {
                     Unused Dependencies ({results.unusedDependencies.length})
                   </h3>
                   <ul className="space-y-2">
-                    {results.unusedDependencies.map((dep, index) => (
-                      <li key={index} className="flex items-center space-x-3">
+                    {results.unusedDependencies.map((dep, idx) => (
+                      <li key={idx} className="flex items-center space-x-3">
                         <AlertTriangle className="w-4 h-4 text-yellow-500" />
                         <span className="text-gray-900">{dep}</span>
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
@@ -357,7 +388,7 @@ export default function DepScanner() {
                 </div>
               )}
 
-              {/* Missing Dependencies */}
+              {/* Missing */}
               {results.missingDependencies.length > 0 && (
                 <div className="px-6 py-4">
                   <h3 className="text-lg font-medium text-gray-900 mb-3 flex items-center">
@@ -365,8 +396,8 @@ export default function DepScanner() {
                     Missing Dependencies ({results.missingDependencies.length})
                   </h3>
                   <ul className="space-y-2">
-                    {results.missingDependencies.map((dep, index) => (
-                      <li key={index} className="flex items-center space-x-3">
+                    {results.missingDependencies.map((dep, idx) => (
+                      <li key={idx} className="flex items-center space-x-3">
                         <XCircle className="w-4 h-4 text-red-500" />
                         <span className="text-gray-900">{dep}</span>
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
@@ -378,7 +409,7 @@ export default function DepScanner() {
                 </div>
               )}
 
-              {/* No issues found */}
+              {/* No Issues */}
               {results.unusedDependencies.length === 0 &&
                 results.missingDependencies.length === 0 && (
                   <div className="px-6 py-8 text-center">
@@ -387,14 +418,13 @@ export default function DepScanner() {
                       All Dependencies Look Good!
                     </h3>
                     <p className="text-gray-600">
-                      No unused or missing dependencies were found in this
-                      folder.
+                      No unused or missing dependencies were found in this folder.
                     </p>
                   </div>
                 )}
             </div>
 
-            {/* Action suggestions */}
+            {/* Action Suggestions */}
             {(results.unusedDependencies.length > 0 ||
               results.missingDependencies.length > 0) && (
               <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
@@ -402,24 +432,29 @@ export default function DepScanner() {
                   Recommended Actions
                 </h3>
                 <ul className="text-sm text-blue-700 space-y-2">
-                  {results.unusedDependencies.length > 0 && (
-                    <li className="flex flex-col space-y-1">
-                      <span>
-                        • Remove unused dependencies to reduce bundle size:
-                      </span>
-                      <code className="bg-blue-100 text-blue-900 px-2 py-1 rounded text-xs ml-4">
-                        npm uninstall {results.unusedDependencies.join(" ")}
-                      </code>
-                    </li>
-                  )}
-                  {results.missingDependencies.length > 0 && (
-                    <li className="flex flex-col space-y-1">
-                      <span>• Install missing dependencies:</span>
-                      <code className="bg-blue-100 text-blue-900 px-2 py-1 rounded text-xs ml-4">
-                        npm install {results.missingDependencies.join(" ")}
-                      </code>
-                    </li>
-                  )}
+                  {(() => {
+                    const commands = getFixCommands(results);
+                    return (
+                      <>
+                        {results.unusedDependencies.length > 0 && (
+                          <li className="flex flex-col space-y-1">
+                            <span>• Remove unused dependencies:</span>
+                            <code className="bg-blue-100 text-blue-900 px-2 py-1 rounded text-xs ml-4">
+                              {commands.remove}
+                            </code>
+                          </li>
+                        )}
+                        {results.missingDependencies.length > 0 && (
+                          <li className="flex flex-col space-y-1">
+                            <span>• Install missing dependencies:</span>
+                            <code className="bg-blue-100 text-blue-900 px-2 py-1 rounded text-xs ml-4">
+                              {commands.install}
+                            </code>
+                          </li>
+                        )}
+                      </>
+                    );
+                  })()}
                 </ul>
               </div>
             )}
