@@ -124,6 +124,13 @@ const Navigation = () => {
                 >
                   Repo Checks
                 </Link>
+                <Link
+                  href="/depscanner"
+                  className="text-muted-foreground hover:text-foreground transition-colors text-sm font-medium"
+                >
+                  Find Unused Deps
+                </Link>
+
 
                 {/* User Menu */}
                 <div className="flex items-center space-x-3">
@@ -238,6 +245,13 @@ const Navigation = () => {
                       onClick={closeMenu}
                     >
                       Repo Checks
+                    </Link>
+                    <Link
+                      href="/depscanner"
+                      className="text-muted-foreground hover:text-foreground transition-colors text-sm font-medium py-2"
+                      onClick={closeMenu}
+                    >
+                      Find Unused Deps
                     </Link>
 
                     <div className="pt-4 border-t border-border/50 space-y-3">
