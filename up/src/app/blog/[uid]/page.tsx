@@ -105,7 +105,7 @@ const richTextComponents: JSXMapSerializer = {
     <p className="my-4 leading-relaxed text-white">{children}</p>
   ),
   preformatted: ({ children }) => (
-    <pre className="bg-gray-100 p-4 rounded my-6 overflow-x-auto">
+    <pre className="bg-gray-100 text-gray-900 p-4 rounded my-6 overflow-x-auto">
       {children}
     </pre>
   ),
