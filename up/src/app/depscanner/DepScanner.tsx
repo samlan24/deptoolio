@@ -427,7 +427,7 @@ export default function DepScanner() {
                         removing them to reduce bundle size:
                       </span>
                       <code className="bg-blue-100 text-blue-900 px-2 py-1 rounded text-xs ml-4">
-                        npm uninstall {results.unusedDependencies.join(" ")}
+                        npm uninstall...
                       </code>
                       <span className="text-xs text-blue-600 ml-4">
                         ⚠️ Always search your codebase first to confirm these
@@ -441,7 +441,7 @@ export default function DepScanner() {
                         • Consider installing potentially missing dependencies:
                       </span>
                       <code className="bg-blue-100 text-blue-900 px-2 py-1 rounded text-xs ml-4">
-                        npm install {results.missingDependencies.join(" ")}
+                        npm install...
                       </code>
                       <span className="text-xs text-blue-600 ml-4">
                         💡 Verify these are actually needed for your project
