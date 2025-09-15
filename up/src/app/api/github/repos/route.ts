@@ -23,6 +23,20 @@ async function createClient() {
   );
 }
 
+async function validateGitHubToken(token: string) {
+  try {
+    const response = await fetch('https://api.github.com/user', {
+      headers: {
+        Authorization: `token ${token}`,
+        Accept: "application/vnd.github.v3+json",
+      },
+    });
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
 export async function GET(request: NextRequest) {
   try {
     // Get page and per_page from request query params
@@ -38,6 +52,14 @@ export async function GET(request: NextRequest) {
     if (!session?.provider_token) {
       return NextResponse.json(
         { error: "GitHub token not found" },
+        { status: 401 }
+      );
+    }
+
+    const isValidToken = await validateGitHubToken(session.provider_token);
+    if (!isValidToken) {
+      return NextResponse.json(
+        { error: "GitHub token expired. Please sign in again." },
         { status: 401 }
       );
     }

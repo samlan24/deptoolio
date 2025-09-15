@@ -130,9 +130,21 @@ export default function DepScanner() {
       setHasMore(data.repos.length === perPage);
       setPage(pageNumber);
     } catch (err) {
-      setError(
-        "Failed to load repositories. Make sure you signed in with GitHub."
-      );
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to load repositories";
+
+      if (
+        errorMessage.includes("token expired") ||
+        errorMessage.includes("GitHub token")
+      ) {
+        setError(
+          "Your GitHub session has expired. Please sign out and sign in again."
+        );
+      } else {
+        setError(
+          "Failed to load repositories. Make sure you signed in with GitHub."
+        );
+      }
     } finally {
       setLoading(false);
       setLoadingMore(false);

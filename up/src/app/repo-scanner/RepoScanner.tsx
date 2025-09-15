@@ -127,9 +127,21 @@ export default function RepoScanner() {
       setHasMore(data.repos.length === perPage);
       setPage(pageNumber);
     } catch (err) {
-      setError(
-        "Failed to load repositories. Make sure you signed in with GitHub."
-      );
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to load repositories";
+
+      if (
+        errorMessage.includes("token expired") ||
+        errorMessage.includes("GitHub token")
+      ) {
+        setError(
+          "Your GitHub session has expired. Please sign out and sign in again."
+        );
+      } else {
+        setError(
+          "Failed to load repositories. Make sure you signed in with GitHub."
+        );
+      }
     } finally {
       setLoading(false);
       setLoadingMore(false);
@@ -295,12 +307,12 @@ export default function RepoScanner() {
         detectedFileType === "python"
           ? "/api/check-py-vulnerabilities"
           : detectedFileType === "php"
-          ? "/api/check-php-vulnerabilities"
-          : detectedFileType === "rust"
-          ? "/api/check-rust-vulnerabilities"
-          : detectedFileType === "net"
-          ? "/api/check-net-vulnerabilities"
-          : "/api/check-js-vulnerabilities";
+            ? "/api/check-php-vulnerabilities"
+            : detectedFileType === "rust"
+              ? "/api/check-rust-vulnerabilities"
+              : detectedFileType === "net"
+                ? "/api/check-net-vulnerabilities"
+                : "/api/check-js-vulnerabilities";
 
       const response = await fetch(vulnEndpoint, {
         method: "POST",
@@ -994,8 +1006,8 @@ export default function RepoScanner() {
                   {getVulnerabilitySummary().totalVulns === 0
                     ? "No Vulnerabilities"
                     : getVulnerabilitySummary().totalVulns === 1
-                    ? "Vulnerability"
-                    : "Vulnerabilities"}
+                      ? "Vulnerability"
+                      : "Vulnerabilities"}
                 </div>
                 {getVulnerabilitySummary().depsWithVulns > 0 && (
                   <div className="text-xs text-gray-500 mt-1">
@@ -1079,8 +1091,8 @@ export default function RepoScanner() {
                           dep.status === "current"
                             ? "bg-green-100 text-green-800"
                             : dep.status === "outdated"
-                            ? "bg-yellow-100 text-yellow-800"
-                            : "bg-red-100 text-red-800"
+                              ? "bg-yellow-100 text-yellow-800"
+                              : "bg-red-100 text-red-800"
                         }`}
                       >
                         {dep.status === "major" ? "Major Update" : dep.status}
