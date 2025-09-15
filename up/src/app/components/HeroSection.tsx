@@ -3,13 +3,7 @@ import { useState } from "react";
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
 import Link from "next/link";
-import {
-  Upload,
-  CheckCircle,
-  FileCode,
-  Zap,
-  ArrowRight,
-} from "lucide-react";
+import { Upload, CheckCircle, FileCode, Zap, ArrowRight } from "lucide-react";
 import {
   SiJavascript,
   SiPython,
@@ -32,15 +26,16 @@ const HeroSection = () => {
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12 fade-in-up animate">
             <h1 className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent">
-              Stop Fighting <br />
+              Keep Your Dependencies <br />
               <span className="bg-gradient-to-r from-primary to-primary-glow bg-clip-text text-transparent">
-                Dependency Hell
+                Secure, Updated & Optimized
               </span>
             </h1>
             <p className="text-xl md:text-2xl text-muted-foreground max-w-4xl mx-auto mb-8 leading-relaxed">
-              Upload your package.json, requirements.txt, or any dependency file
-              and instantly see which packages need updating. Works with
-              Node.js, Python, Go, PHP, and more.
+              Connect your GitHub repos or upload dependency files directly to
+              instantly detect outdated packages, security vulnerabilities, and
+              unused dependencies. Works with Node.js, Python, Go, PHP, and
+              more.
             </p>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 max-w-4xl mx-auto mb-12">
@@ -73,8 +68,9 @@ const HeroSection = () => {
                       Ready to Analyze?
                     </h3>
                     <p className="text-muted-foreground">
-                      Get detailed dependency analysis with security alerts,
-                      update recommendations, and compatibility insights.
+                      Get comprehensive dependency analysis: security
+                      vulnerabilities, update recommendations, and unused
+                      dependency detection.
                     </p>
                   </div>
                 </div>
@@ -82,7 +78,7 @@ const HeroSection = () => {
                 <div className="space-y-3">
                   <Link href="/checks" className="block">
                     <Button size="lg" className="btn-hero w-full group">
-                      Start Free Analysis
+                      Connect GitHub or Upload Files
                       <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
                     </Button>
                   </Link>

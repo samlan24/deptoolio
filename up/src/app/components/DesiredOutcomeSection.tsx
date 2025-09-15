@@ -6,7 +6,8 @@ const DesiredOutcomeSection = () => {
     {
       icon: Eye,
       title: "Clear Overview",
-      description: "See exactly what needs updating with priority levels.",
+      description:
+        "See security vulnerabilities, outdated packages, and unused dependencies with priority levels.",
     },
     {
       icon: Globe,
@@ -28,12 +29,12 @@ const DesiredOutcomeSection = () => {
             <h2 className="text-4xl md:text-5xl font-bold mb-6 text-foreground">
               Imagine Having Complete <br />
               <span className="bg-gradient-to-r from-primary to-primary-glow bg-clip-text text-transparent">
-                Dependency Visibility
+                Dependency Health Control
               </span>
             </h2>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-              Transform your dependency management from reactive chaos to
-              proactive control
+              Transform your dependencies from security risks and bloat to a
+              clean, secure, and optimized codebase
             </p>
           </div>
 
@@ -66,14 +67,16 @@ const DesiredOutcomeSection = () => {
                   A New Paradigm for Dependency Management
                 </h3>
                 <p className="text-muted-foreground text-lg leading-relaxed">
-                  What if dependency management wasn't about remembering to
-                  check different package managers, but about having
+                  What if dependency management wasn't about juggling security
+                  alerts, update notifications, and bloated packages, but about
+                  having
                   <span className="text-primary font-medium">
                     {" "}
-                    one intelligent assistant that monitors everything for you?
+                    one intelligent scanner that finds vulnerabilities, outdated
+                    packages, and unused dependencies instantly?
                   </span>
-                  Instead of reactive firefighting, you get proactive insights
-                  that keep your projects healthy and secure.
+                  Instead of reactive firefighting, you get comprehensive
+                  insights that keep your projects secure, current, and lean.
                 </p>
               </div>
             </div>
