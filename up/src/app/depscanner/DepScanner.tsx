@@ -417,26 +417,35 @@ export default function DepScanner() {
               results.missingDependencies.length > 0) && (
               <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <h3 className="text-sm font-medium text-blue-900 mb-2">
-                  Recommended Actions
+                  Suggested Next Steps
                 </h3>
                 <ul className="text-sm text-blue-700 space-y-2">
                   {results.unusedDependencies.length > 0 && (
                     <li className="flex flex-col space-y-1">
                       <span>
-                        {" "}
-                        • Remove unused dependencies to reduce bundle size:{" "}
+                        • After verifying these are truly unused, consider
+                        removing them to reduce bundle size:
                       </span>
                       <code className="bg-blue-100 text-blue-900 px-2 py-1 rounded text-xs ml-4">
                         npm uninstall {results.unusedDependencies.join(" ")}
                       </code>
+                      <span className="text-xs text-blue-600 ml-4">
+                        ⚠️ Always search your codebase first to confirm these
+                        aren't needed
+                      </span>
                     </li>
                   )}
                   {results.missingDependencies.length > 0 && (
                     <li className="flex flex-col space-y-1">
-                      <span>• Install missing dependencies:</span>
+                      <span>
+                        • Consider installing potentially missing dependencies:
+                      </span>
                       <code className="bg-blue-100 text-blue-900 px-2 py-1 rounded text-xs ml-4">
                         npm install {results.missingDependencies.join(" ")}
                       </code>
+                      <span className="text-xs text-blue-600 ml-4">
+                        💡 Verify these are actually needed for your project
+                      </span>
                     </li>
                   )}
                 </ul>
