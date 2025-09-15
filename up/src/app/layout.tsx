@@ -24,34 +24,42 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "Pacgie - Stop Fighting Dependency Hell",
+    default: "Pacgie - Secure, Updated & Optimized Dependencies",
     template: "%s | Pacgie",
   },
   description:
-    "Upload your package.json, requirements.txt, or dependency file and instantly see which packages need updating. Supports Node.js, Python, Go, PHP, and more.",
+    "Connect GitHub repos or upload dependency files to detect security vulnerabilities, outdated packages, and unused dependencies. Supports JavaScript, Python, Go, Rust, PHP, and more.",
   keywords: [
     "dependency scanner",
-    "package scanner",
     "vulnerability scanner",
+    "security scanner",
     "outdated packages",
+    "unused dependencies",
+    "dependency management",
+    "package scanner",
+    "github integration",
     "package.json",
     "requirements.txt",
-    "dependency management",
+    "go.mod",
+    "cargo.toml",
+    "composer.json",
+    "dependency security",
+    "bundle optimization",
   ],
   authors: [{ name: "Pacgie" }],
   creator: "Pacgie",
   publisher: "Pacgie",
   twitter: {
     card: "summary_large_image",
-    title: "Pacgie - Stop Fighting Dependency Hell",
+    title: "Pacgie - Secure, Updated & Optimized Dependencies",
     description:
-      "Upload your dependency files and instantly see which packages need updating. Supports Node.js, Python, Go, PHP, and more.",
+      "Scan for security vulnerabilities, outdated packages, and unused dependencies across multiple languages. GitHub integration included.",
     creator: "@pacgie",
   },
   openGraph: {
-    title: "Pacgie - Stop Fighting Dependency Hell",
+    title: "Pacgie - Secure, Updated & Optimized Dependencies",
     description:
-      "Upload your dependency files and instantly see which packages need updating. Supports Node.js, Python, Go, PHP, and more.",
+      "Connect GitHub repos or upload dependency files to detect security vulnerabilities, outdated packages, and unused dependencies instantly.",
     type: "website",
     url: "https://www.pacgie.com",
     siteName: "Pacgie",
@@ -84,7 +92,7 @@ const structuredData = {
   name: "Pacgie",
   url: "https://www.pacgie.com",
   description:
-    "Upload your package.json, requirements.txt, or dependency file and instantly see which packages need updating. Supports Node.js, Python, Go, PHP, and more.",
+    "Multi-language dependency scanner that detects security vulnerabilities, outdated packages, and unused dependencies. Supports GitHub integration and direct file uploads for JavaScript, Python, Go, Rust, PHP, and more.",
   applicationCategory: "DeveloperApplication",
   operatingSystem: "Web Browser",
   offers: {
@@ -98,10 +106,14 @@ const structuredData = {
     url: "https://www.pacgie.com",
   },
   featureList: [
-    "Dependency scanning",
-    "Vulnerability detection",
-    "Package update recommendations",
+    "Security vulnerability detection",
+    "Outdated package identification",
+    "Unused dependency analysis",
+    "GitHub repository integration",
     "Multi-language support",
+    "Direct file upload scanning",
+    "Bundle size optimization",
+    "Dependency health reports",
   ],
 };
 
@@ -117,7 +129,10 @@ export default function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
         />
-        <Script async src="https://www.googletagmanager.com/gtag/js?id=G-CPB8N6RKJ2"></Script>
+        <Script
+          async
+          src="https://www.googletagmanager.com/gtag/js?id=G-CPB8N6RKJ2"
+        ></Script>
         <Script>
           {`
             window.dataLayer = window.dataLayer || [];
