@@ -48,8 +48,8 @@ export async function POST(request: NextRequest) {
       const status = limitResult.rate_limited
         ? 429
         : limitResult.limit_exceeded
-        ? 429
-        : 500;
+          ? 429
+          : 500;
 
       const headers: Record<string, string> = {};
       if (limitResult.retry_after !== undefined) {
@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Input validation
-    const { owner, repo, path } = await request.json();
+    const { owner, repo, path, token } = await request.json();
 
     if (!owner || !repo || !path) {
       return NextResponse.json(
@@ -70,7 +70,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Additional validation
-    if (typeof owner !== 'string' || typeof repo !== 'string' || typeof path !== 'string') {
+    if (
+      typeof owner !== "string" ||
+      typeof repo !== "string" ||
+      typeof path !== "string"
+    ) {
       return NextResponse.json(
         { error: "Invalid parameter types" },
         { status: 400 }
@@ -109,22 +113,20 @@ export async function POST(request: NextRequest) {
     const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
 
     try {
-      const response = await fetch(
-        `${process.env.DEPCHECK_SERVICE_URL}/scan`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "User-Agent": "deptoolio-scanner/1.0"
-          },
-          body: JSON.stringify({
-            owner: sanitizedOwner,
-            repo: sanitizedRepo,
-            path: sanitizedPath
-          }),
-          signal: controller.signal,
-        }
-      );
+      const response = await fetch(`${process.env.DEPCHECK_SERVICE_URL}/scan`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "User-Agent": "deptoolio-scanner/1.0",
+        },
+        body: JSON.stringify({
+          owner: sanitizedOwner,
+          repo: sanitizedRepo,
+          path: sanitizedPath,
+          token: token,
+        }),
+        signal: controller.signal,
+      });
 
       clearTimeout(timeoutId);
 
@@ -163,7 +165,7 @@ export async function POST(request: NextRequest) {
       const data = await response.json();
 
       // Validate response structure
-      if (!data || typeof data !== 'object') {
+      if (!data || typeof data !== "object") {
         return NextResponse.json(
           { error: "Invalid response from scan service" },
           { status: 500 }
@@ -172,19 +174,25 @@ export async function POST(request: NextRequest) {
 
       // Ensure expected arrays exist
       const result = {
-        unusedDependencies: Array.isArray(data.unusedDependencies) ? data.unusedDependencies : [],
-        missingDependencies: Array.isArray(data.missingDependencies) ? data.missingDependencies : [],
-        ...data
+        unusedDependencies: Array.isArray(data.unusedDependencies)
+          ? data.unusedDependencies
+          : [],
+        missingDependencies: Array.isArray(data.missingDependencies)
+          ? data.missingDependencies
+          : [],
+        ...data,
       };
 
       return NextResponse.json(result);
-
     } catch (fetchError: any) {
       clearTimeout(timeoutId);
 
-      if (fetchError.name === 'AbortError') {
+      if (fetchError.name === "AbortError") {
         return NextResponse.json(
-          { error: "Scan request timed out. The repository may be too large or the service is overloaded." },
+          {
+            error:
+              "Scan request timed out. The repository may be too large or the service is overloaded.",
+          },
           { status: 504 }
         );
       }
@@ -195,12 +203,11 @@ export async function POST(request: NextRequest) {
         { status: 503 }
       );
     }
-
   } catch (error: any) {
     console.error("API Route Error:", error);
 
     // Handle JSON parsing errors
-    if (error instanceof SyntaxError && error.message.includes('JSON')) {
+    if (error instanceof SyntaxError && error.message.includes("JSON")) {
       return NextResponse.json(
         { error: "Invalid JSON in request body" },
         { status: 400 }

@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { createBrowserClient } from "@supabase/ssr";
 import {
   CheckCircle,
   AlertTriangle,
@@ -34,6 +35,13 @@ interface Repo {
 interface FolderItem {
   name: string;
   path: string;
+}
+
+function createClient() {
+  return createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
 }
 
 export default function DepScanner() {
@@ -156,6 +164,12 @@ export default function DepScanner() {
       setError("Please select a repository and a folder");
       return;
     }
+
+    const supabase = createClient();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
     setScanning(true);
     setResults(null);
     setError("");
@@ -168,6 +182,7 @@ export default function DepScanner() {
           owner,
           repo: repoName,
           path: selectedFolder.path,
+          token: session?.provider_token,
         }),
       });
       if (!response.ok) {
