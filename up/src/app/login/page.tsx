@@ -86,7 +86,7 @@ export default function LoginPage() {
 
             {/* Terminal content */}
             <div className="p-4 font-mono text-sm">
-              <div className="text-gray-400 mb-2">$ deptoolio scan</div>
+              <div className="text-gray-400 mb-2">$ pacgie scan</div>
               <div className="text-blue-400 mb-1">🔍 Analyzing dependencies...</div>
               <div className="text-green-400 mb-1">✓ Found 8 unused packages</div>
               <div className="text-yellow-400 mb-1">⚠ 2 missing dependencies detected</div>
