@@ -60,29 +60,35 @@ export default function DepScanner() {
   const [loadingMore, setLoadingMore] = useState(false);
 
   const loadFolders = async (repo: Repo) => {
-    setSelectedRepo(repo);
-    setSelectedFolder(null);
-    setFolders([]);
-    setResults(null);
-    setError("");
-    setLoadingFolders(true);
-    try {
-      const [owner, repoName] = repo.full_name.split("/");
-      const response = await fetch(
-        `/api/github/folders?owner=${owner}&repo=${repoName}&path=`
-      );
-      if (!response.ok) throw new Error("Failed to load folders");
-      const data = await response.json();
-      setFolders(data || []);
-      if (data.length === 0) {
-        setError("No folders found in this repository");
-      }
-    } catch (err) {
-      setError("Failed to load folders from repository");
-    } finally {
-      setLoadingFolders(false);
-    }
-  };
+  setSelectedRepo(repo);
+  setSelectedFolder(null);
+  setFolders([]);
+  setResults(null);
+  setError("");
+  setLoadingFolders(true);
+  try {
+    const [owner, repoName] = repo.full_name.split("/");
+    const response = await fetch(
+      `/api/github/folders?owner=${owner}&repo=${repoName}&path=`
+    );
+    if (!response.ok) throw new Error("Failed to load folders");
+    const data = await response.json();
+
+    // Always include Root as the first option
+    const foldersWithRoot = [
+      { name: "Root", path: "" }, // Root directory option
+      ...(data || [])
+    ];
+
+    setFolders(foldersWithRoot);
+  } catch (err) {
+    // If API fails, still offer Root option
+    setFolders([{ name: "Root", path: "" }]);
+    setError("Failed to load subfolders, but you can still scan the root directory");
+  } finally {
+    setLoadingFolders(false);
+  }
+};
 
   const loadRepoOptions = async (
     search: string,
