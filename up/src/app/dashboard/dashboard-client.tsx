@@ -614,9 +614,9 @@ export default function DashboardClient({ user }: DashboardClientProps) {
   ];
 
   return (
-    <div className="flex gap-8">
+     <div className="flex flex-col lg:flex-row gap-4 lg:gap-8">
       {/* Left Sidebar */}
-      <div className="w-64 bg-gray-800 rounded-lg p-4 h-fit">
+      <div className="w-full lg:w-64 bg-gray-800 rounded-lg p-4 h-fit">
         <nav className="space-y-2">
           {tabs.map((tab) => {
             const Icon = tab.icon;
@@ -639,7 +639,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1">
+      <div className="flex-1 min-w-0">
         {activeTab === "scans" && (
           <PastScansTab
             subscription={subscription}
