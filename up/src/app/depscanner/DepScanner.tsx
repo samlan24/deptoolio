@@ -105,12 +105,10 @@ export default function DepScanner() {
     const data = await response.json();
 
     // Filter to only public repos
-    const publicRepos = (data.repos || []).filter(
-      (repo: Repo) => !repo.private
-    );
+    const allRepos = data.repos || [];
 
     return {
-      options: publicRepos,
+      options: allRepos,
       hasMore: data.repos.length === perPage,
       additional: { page: page + 1 },
     };

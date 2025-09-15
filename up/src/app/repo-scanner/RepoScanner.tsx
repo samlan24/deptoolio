@@ -18,6 +18,8 @@ import {
 } from "../components/ui/select";
 import { AsyncPaginate } from "react-select-async-paginate";
 import type { GroupBase } from "react-select";
+import { createBrowserClient } from "@supabase/ssr";
+
 interface Repo {
   id: number;
   name: string;
@@ -54,6 +56,13 @@ interface DependencyStatus {
 }
 
 type FileType = "npm" | "python" | "go" | "php" | "rust" | "net" | "unknown";
+
+function createClient() {
+  return createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+}
 
 export default function RepoScanner() {
   const [repos, setRepos] = useState<Repo[]>([]);
