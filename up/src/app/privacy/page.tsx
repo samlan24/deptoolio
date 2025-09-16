@@ -10,7 +10,7 @@ export default function PrivacyPage() {
   return (
     <div className="pt-20 max-w-3xl mx-auto px-6 py-12">
       <h1 className="text-3xl font-bold mb-6">Privacy Policy</h1>
-      <p className="mb-4">Last Updated: 2025-09-11 Impact-Site-Verification: c7dc55ec-d7ce-47f0-b833-fbe452320ff3</p>
+      <p className="mb-4">Last Updated: 2025-09-11</p>
 
       <p className="mb-6">
         At <strong>Pacgie</strong>, we respect your privacy and are committed to
