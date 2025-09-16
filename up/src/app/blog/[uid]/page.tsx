@@ -155,6 +155,11 @@ export default async function BlogPostPage({ params }: Props) {
     return (
       <>
         <script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4001819101528400"
+          crossOrigin="anonymous"
+        ></script>
+        <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
             __html: JSON.stringify(generateBlogPostStructuredData(post, uid)),
