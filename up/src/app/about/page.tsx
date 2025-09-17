@@ -40,7 +40,7 @@ export default function AboutPage() {
 
       <h2 className="text-xl font-semibold mt-8 mb-4">Why Choose Pacgie?</h2>
       <ul className="list-disc ml-6 mb-6 space-y-2">
-        <li>Lightweight and easy to use — no complex setup required.</li>
+        <li>Lightweight and easy to use. No complex setup required.</li>
         <li>Transparent pricing with one-time, non-recurring credits.</li>
         <li>
           Focused on privacy: we only collect what’s necessary (email, and
