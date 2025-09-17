@@ -173,6 +173,12 @@ const Navigation = () => {
                 >
                   Pricing
                 </Link>
+                <Link
+                  href="/blog"
+                  className="text-muted-foreground hover:text-foreground transition-colors text-sm font-medium"
+                >
+                  Guides
+                </Link>
 
                 {/* CTA Buttons */}
                 <Link href="/checks">
@@ -283,6 +289,13 @@ const Navigation = () => {
                       onClick={closeMenu}
                     >
                       Pricing
+                    </Link>
+                    <Link
+                      href="/blog"
+                      className="text-muted-foreground hover:text-foreground transition-colors text-sm font-medium py-2"
+                      onClick={closeMenu}
+                    >
+                      Guides
                     </Link>
                     <div className="pt-4 border-t border-border/50 space-y-3">
                       <Link
