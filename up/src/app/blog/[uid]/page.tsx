@@ -121,7 +121,6 @@ const richTextComponents: JSXMapSerializer = {
   oList: ({ children }) => <ol className="my-4">{children}</ol>,
   hyperlink: ({ children, node }) => {
     const url = node.data.url ?? "";
-    // Use optional check for target since it might be undefined
     const target =
       typeof (node.data as any).target === "string"
         ? (node.data as any).target
@@ -138,6 +137,18 @@ const richTextComponents: JSXMapSerializer = {
         {children}
       </a>
     );
+  },
+  label: ({ children, node }) => {
+    if (node.data.label === "code") {
+      // Render inline code spans with monospace font and subtle background
+      return (
+        <code className="bg-gray-200 rounded px-1 py-0.5 font-mono">
+          {children}
+        </code>
+      );
+    }
+    // Fallback to span for other labels
+    return <span>{children}</span>;
   },
 };
 
