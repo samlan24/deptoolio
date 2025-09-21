@@ -1,9 +1,9 @@
 'use client'
 
 import { usePathname, useSearchParams } from 'next/navigation'
-import { useEffect } from 'react'
+import { useEffect, Suspense } from 'react'
 
-export default function DynamicCanonical() {
+function DynamicCanonicalContent() {
   const pathname = usePathname()
   const searchParams = useSearchParams()
 
@@ -23,4 +23,12 @@ export default function DynamicCanonical() {
   }, [pathname, searchParams])
 
   return null
+}
+
+export default function DynamicCanonical() {
+  return (
+    <Suspense fallback={null}>
+      <DynamicCanonicalContent />
+    </Suspense>
+  )
 }
