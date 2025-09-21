@@ -14,16 +14,17 @@ const nextConfig: NextConfig = {
         source: "/(.*)",
         headers: [
           {
-           key: "Content-Security-Policy",
+            key: "Content-Security-Policy",
             value: `
-              default-src 'self';
-              script-src 'self' 'unsafe-eval' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com;
-              style-src 'self' 'unsafe-inline';
-              img-src 'self' data: https: https://www.google-analytics.com;
-              font-src 'self' data:;
-              connect-src 'self' https: https://www.google-analytics.com https://region1.google-analytics.com data: blob:;
-              frame-ancestors 'self';
-            `.replace(/\s{2,}/g, " "),
+            default-src 'self';
+            script-src 'self' 'unsafe-eval' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com https://static.hotjar.com;
+            style-src 'self' 'unsafe-inline' https://static.hotjar.com;
+            img-src 'self' data: https: https://www.google-analytics.com https://script.hotjar.com;
+            font-src 'self' data: https://static.hotjar.com;
+            connect-src 'self' https: https://www.google-analytics.com https://region1.google-analytics.com https://*.hotjar.com https://*.hotjar.io wss://*.hotjar.com data: blob:;
+            frame-ancestors 'self';
+            frame-src https://vars.hotjar.com;
+          `.replace(/\s{2,}/g, " "),
           },
           { key: "X-Frame-Options", value: "SAMEORIGIN" },
           { key: "X-Content-Type-Options", value: "nosniff" },
@@ -38,7 +39,7 @@ const nextConfig: NextConfig = {
     ];
   },
   images: {
-    domains: ['images.prismic.io'],
+    domains: ["images.prismic.io"],
   },
 };
 

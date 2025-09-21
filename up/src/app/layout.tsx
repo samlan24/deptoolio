@@ -3,6 +3,7 @@ import { Geist, Geist_Mono, Inter } from "next/font/google";
 import Script from "next/script";
 import Navigation from "./components/Nav";
 import Footer from "./components/Footer";
+import DynamicCanonical from "./components/DynamicCanonical";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -64,9 +65,6 @@ export const metadata: Metadata = {
     url: "https://www.pacgie.com",
     siteName: "Pacgie",
     locale: "en_US",
-  },
-  alternates: {
-    canonical: "https://www.pacgie.com",
   },
   robots: {
     index: true,
@@ -148,6 +146,7 @@ export default function RootLayout({
         </Script>
       </head>
       <body className={`${inter.variable} antialiased`}>
+        <DynamicCanonical />
         <Navigation />
         {children}
         <Footer />
