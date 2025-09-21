@@ -17,7 +17,7 @@ const nextConfig: NextConfig = {
             key: "Content-Security-Policy",
             value: `
             default-src 'self';
-            script-src 'self' 'unsafe-eval' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com https://static.hotjar.com;
+            script-src 'self' 'unsafe-eval' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com https://static.hotjar.com https://script.hotjar.com;
             style-src 'self' 'unsafe-inline' https://static.hotjar.com;
             img-src 'self' data: https: https://www.google-analytics.com https://script.hotjar.com;
             font-src 'self' data: https://static.hotjar.com;
