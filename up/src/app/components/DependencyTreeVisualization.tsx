@@ -124,6 +124,35 @@ const DependencyTreeVisualization: React.FC<
         .attr("opacity", 0.2);
     });
 
+    // Calculate max depth of your dependency tree
+    function getMaxDepth(node: any): number {
+      if (!node.children || node.children.length === 0) return 1;
+      return 1 + Math.max(...node.children.map(getMaxDepth));
+    }
+
+    const maxDepth = getMaxDepth(root);
+
+    // Scale radius based on depth
+    const radius = maxDepth * 120; // adjust spacing multiplier
+
+    const rootLayout = treeLayout(root);
+
+    // Radial link generator
+    const link = d3
+      .linkRadial<any, d3.HierarchyPointNode<any>>()
+      .angle((d) => d.x)
+      .radius((d) => d.y);
+
+    svg
+      .append("g")
+      .selectAll("path")
+      .data(rootLayout.links())
+      .join("path")
+      .attr("d", link as any)
+      .attr("fill", "none")
+      .attr("stroke", "#9d4edd")
+      .attr("stroke-width", 1.5);
+
     // Create gradient definitions
     const defs = svg.append("defs");
 
@@ -153,6 +182,15 @@ const DependencyTreeVisualization: React.FC<
         .attr("offset", "100%")
         .attr("stop-color", colors[1]);
     });
+
+    const zoom = d3
+      .zoom<SVGSVGElement, unknown>()
+      .scaleExtent([0.5, 3]) // min/max zoom
+      .on("zoom", (event) => {
+        g.attr("transform", event.transform);
+      });
+
+    svg.call(zoom);
 
     // Improved tentacle links with better curves
     const links = g
