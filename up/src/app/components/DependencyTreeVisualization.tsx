@@ -87,13 +87,13 @@ const DependencyTreeVisualization: React.FC<
     // Improved radial tree layout with better spacing
     const treeLayout = d3
       .tree<TreeNode>()
-      .size([2 * Math.PI, Math.min(width, height) / 2.2]) // Increased from /3 to /2.2 for more space
+      .size([2 * Math.PI, Math.min(width, height) / 1.6]) // Increased from /3 to /2.2 for more space
       .separation((a, b) => {
         // More intelligent spacing based on depth and sibling count
-        const baseSpacing = 3; // Increased from default
-        const depthMultiplier = a.depth === 1 ? 2.5 : 1.8; // More space for first level
+        const baseSpacing = 6; // Increased from default
+        const depthMultiplier = a.depth === 1 ? 3.5 : 2.5; // More space for first level
         return (
-          ((a.parent === b.parent ? baseSpacing : baseSpacing * 1.5) /
+          ((a.parent === b.parent ? baseSpacing : baseSpacing * 2) /
             (a.depth || 1)) *
           depthMultiplier
         );
