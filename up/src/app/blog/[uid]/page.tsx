@@ -92,19 +92,13 @@ const generateBlogPostStructuredData = (post: any, uid: string) => ({
 
 const richTextComponents: JSXMapSerializer = {
   heading1: ({ children }) => (
-    <h1 className="text-3xl text-gray-900 font-bold my-6">
-      {children}
-    </h1>
+    <h1 className="text-3xl text-gray-900 font-bold my-6">{children}</h1>
   ),
   heading2: ({ children }) => (
-    <h2 className="text-2xl text-gray-900 font-semibold my-5">
-      {children}
-    </h2>
+    <h2 className="text-2xl text-gray-900 font-semibold my-5">{children}</h2>
   ),
   heading3: ({ children }) => (
-    <h3 className="text-xl text-gray-900 font-semibold my-4">
-      {children}
-    </h3>
+    <h3 className="text-xl text-gray-900 font-semibold my-4">{children}</h3>
   ),
   paragraph: ({ children }) => (
     <p className="my-4 leading-relaxed text-gray-700">{children}</p>
@@ -176,8 +170,6 @@ export default async function BlogPostPage({ params }: Props) {
             __html: JSON.stringify(generateBlogPostStructuredData(post, uid)),
           }}
         />
-        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4001819101528400"
-     crossOrigin="anonymous"></script>
 
         <div className="min-h-screen bg-gray-50 pt-16">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8 pt-20">
@@ -188,8 +180,18 @@ export default async function BlogPostPage({ params }: Props) {
                   href="/blog"
                   className="inline-flex items-center text-blue-600 hover:text-blue-800 mb-6 text-sm font-medium transition-colors"
                 >
-                  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  <svg
+                    className="w-4 h-4 mr-1"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15 19l-7-7 7-7"
+                    />
                   </svg>
                   Back to Blog
                 </Link>
@@ -208,19 +210,41 @@ export default async function BlogPostPage({ params }: Props) {
                   <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500">
                     {post.data.author && (
                       <span className="flex items-center">
-                        <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                        <svg
+                          className="w-4 h-4 mr-1"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                            clipRule="evenodd"
+                          />
                         </svg>
                         {post.data.author}
                       </span>
                     )}
 
-                    {(post.data.published_date || post.first_publication_date) && (
+                    {(post.data.published_date ||
+                      post.first_publication_date) && (
                       <span className="flex items-center">
-                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        <svg
+                          className="w-4 h-4 mr-1"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                          />
                         </svg>
-                        {new Date(post.data.published_date || post.first_publication_date).toLocaleDateString()}
+                        {new Date(
+                          post.data.published_date ||
+                            post.first_publication_date
+                        ).toLocaleDateString()}
                       </span>
                     )}
                   </div>
@@ -251,7 +275,9 @@ export default async function BlogPostPage({ params }: Props) {
                   <SliceZone
                     slices={post.data.slices}
                     components={{
-                      dependency_cta: (props) => <DependencyCta {...props} lightMode={true} />
+                      dependency_cta: (props) => (
+                        <DependencyCta {...props} lightMode={true} />
+                      ),
                     }}
                   />
                 </div>
@@ -264,14 +290,27 @@ export default async function BlogPostPage({ params }: Props) {
                     href="/blog"
                     className="inline-flex items-center text-blue-600 hover:text-blue-800 font-medium transition-colors"
                   >
-                    <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    <svg
+                      className="w-4 h-4 mr-1"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M15 19l-7-7 7-7"
+                      />
                     </svg>
                     View More Articles
                   </Link>
 
                   <div className="text-sm text-gray-500">
-                    Last updated: {new Date(post.last_publication_date || post.first_publication_date).toLocaleDateString()}
+                    Last updated:{" "}
+                    {new Date(
+                      post.last_publication_date || post.first_publication_date
+                    ).toLocaleDateString()}
                   </div>
                 </div>
               </div>
