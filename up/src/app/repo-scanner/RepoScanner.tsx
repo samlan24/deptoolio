@@ -19,6 +19,7 @@ import {
 import { AsyncPaginate } from "react-select-async-paginate";
 import type { GroupBase } from "react-select";
 import { createBrowserClient } from "@supabase/ssr";
+import DependencyTreeVisualization from "../components/DependencyTreeVisualization";
 
 interface Repo {
   id: number;
@@ -87,6 +88,9 @@ export default function RepoScanner() {
   const perPage = 10; // or any number you want
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [showDependencyTree, setShowDependencyTree] = useState(false);
+  const [dependencyTree, setDependencyTree] = useState(null);
+  const [treeLoading, setTreeLoading] = useState(false);
 
   const loadRepoOptions = async (
     search: string,
@@ -755,6 +759,43 @@ export default function RepoScanner() {
     return "bg-gray-300 text-gray-700"; // unknown or other licenses - gray
   };
 
+  const handleDependencyTreeScan = async () => {
+    if (results.length === 0) {
+      alert("Please upload and scan dependencies first.");
+      return;
+    }
+
+    setTreeLoading(true);
+
+    try {
+      const dependencies = results.map((dep) => dep.name);
+
+      const response = await fetch("/api/dependency-tree", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          dependencies,
+          fileType: detectedFileType,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.error) {
+        alert(`Error: ${data.error}`);
+        return;
+      }
+
+      setDependencyTree(data);
+      setShowDependencyTree(true);
+    } catch (error) {
+      console.error("Error fetching dependency tree:", error);
+      alert("Failed to fetch dependency tree.");
+    } finally {
+      setTreeLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen pt-20 space-y-6">
       <div className="max-w-4xl mx-auto p-6 space-y-6 bg-gray-900 rounded-lg shadow-lg">
@@ -956,7 +997,15 @@ export default function RepoScanner() {
         {/* Results Section */}
         {results.length > 0 && (
           <>
-            <div className="text-right">
+            <div className="mt-4 text-right flex gap-3 justify-end">
+              <button
+                onClick={handleDependencyTreeScan}
+                disabled={treeLoading}
+                className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 disabled:bg-purple-300 transition-colors"
+              >
+                {treeLoading ? "Loading Tree..." : "See Dependency Tree"}
+              </button>
+
               <button
                 onClick={handleVulnerabilityScan}
                 disabled={vulnerabilityLoading || detectedFileType === "go"}
@@ -1027,6 +1076,37 @@ export default function RepoScanner() {
                   </div>
                 )}
               </div>
+              {/* Dependency Tree Modal */}
+              {showDependencyTree && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                  <div className="bg-white rounded-lg w-full max-w-6xl h-5/6 flex flex-col">
+                    <div className="flex justify-between items-center p-6 border-b">
+                      <div className="flex flex-col">
+                        <h3 className="text-xl font-semibold text-gray-900">
+                          Dependency Tree Visualization
+                        </h3>
+                        <p className="text-sm text-gray-400">
+                          Use your mouse to drag and zoom
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => setShowDependencyTree(false)}
+                        className="text-gray-400 hover:text-gray-600 text-2xl font-bold"
+                      >
+                        ×
+                      </button>
+                    </div>
+                    <div className="flex-1 p-6">
+                      {dependencyTree && (
+                        <DependencyTreeVisualization
+                          data={dependencyTree}
+                          mainPackage={selectedFile?.name || "Unknown"}
+                        />
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             <h2 className="text-xl font-semibold text-gray-900 mb-4">

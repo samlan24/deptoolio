@@ -12,6 +12,7 @@ import {
 import Link from "next/link";
 import { createClient } from "../lib/supabase";
 import type { User } from "@supabase/supabase-js";
+import DependencyTreeVisualization from '../components/DependencyTreeVisualization';
 
 interface DependencyStatus {
   name: string;
@@ -39,6 +40,9 @@ export default function Home() {
   const [user, setUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showDependencyTree, setShowDependencyTree] = useState(false);
+  const [dependencyTree, setDependencyTree] = useState(null);
+  const [treeLoading, setTreeLoading] = useState(false);
   const supabase = createClient();
 
   // File type detection logic (same as before)
@@ -235,12 +239,12 @@ export default function Home() {
         detectedFileType === "python"
           ? "/api/check-py-vulnerabilities"
           : detectedFileType === "php"
-          ? "/api/check-php-vulnerabilities"
-          : detectedFileType === "rust"
-          ? "/api/check-rust-vulnerabilities"
-          : detectedFileType === "net"
-          ? "/api/check-net-vulnerabilities"
-          : "/api/check-js-vulnerabilities";
+            ? "/api/check-php-vulnerabilities"
+            : detectedFileType === "rust"
+              ? "/api/check-rust-vulnerabilities"
+              : detectedFileType === "net"
+                ? "/api/check-net-vulnerabilities"
+                : "/api/check-js-vulnerabilities";
 
       const response = await fetch(vulnEndpoint, {
         method: "POST",
@@ -409,6 +413,43 @@ export default function Home() {
     return { totalVulns, depsWithVulns };
   };
 
+  const handleDependencyTreeScan = async () => {
+    if (results.length === 0) {
+      alert("Please upload and scan dependencies first.");
+      return;
+    }
+
+    setTreeLoading(true);
+
+    try {
+      const dependencies = results.map((dep) => dep.name);
+
+      const response = await fetch("/api/dependency-tree", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          dependencies,
+          fileType: detectedFileType,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.error) {
+        alert(`Error: ${data.error}`);
+        return;
+      }
+
+      setDependencyTree(data);
+      setShowDependencyTree(true);
+    } catch (error) {
+      console.error("Error fetching dependency tree:", error);
+      alert("Failed to fetch dependency tree.");
+    } finally {
+      setTreeLoading(false);
+    }
+  };
+
   const getLicenseColorClass = (license: string | null): string => {
     if (!license) return "bg-gray-300 text-gray-700";
 
@@ -553,7 +594,15 @@ export default function Home() {
 
         {results.length > 0 && (
           <>
-            <div className="mt-4 text-right">
+            <div className="mt-4 text-right flex gap-3 justify-end">
+              <button
+                onClick={handleDependencyTreeScan}
+                disabled={treeLoading}
+                className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 disabled:bg-purple-300 transition-colors"
+              >
+                {treeLoading ? "Loading Tree..." : "See Dependency Tree"}
+              </button>
+
               <button
                 onClick={handleVulnerabilityScan}
                 disabled={vulnerabilityLoading || detectedFileType === "go"}
@@ -614,8 +663,8 @@ export default function Home() {
                     {getVulnerabilitySummary().totalVulns === 0
                       ? "No Vulnerabilities"
                       : getVulnerabilitySummary().totalVulns === 1
-                      ? "Vulnerability"
-                      : "Vulnerabilities"}
+                        ? "Vulnerability"
+                        : "Vulnerabilities"}
                   </div>
                   {getVulnerabilitySummary().depsWithVulns > 0 && (
                     <div className="text-xs text-gray-500 mt-1">
@@ -626,6 +675,35 @@ export default function Home() {
                     </div>
                   )}
                 </div>
+                {/* Dependency Tree Modal */}
+                {showDependencyTree && (
+                  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-lg w-full max-w-6xl h-5/6 flex flex-col">
+                      <div className="flex justify-between items-center p-6 border-b">
+                        <div className="flex flex-col">
+                        <h3 className="text-xl font-semibold text-gray-900">
+                          Dependency Tree Visualization
+                        </h3>
+                        <p className="text-sm text-gray-400">Use your mouse to drag and zoom</p>
+                        </div>
+                        <button
+                          onClick={() => setShowDependencyTree(false)}
+                          className="text-gray-400 hover:text-gray-600 text-2xl font-bold"
+                        >
+                          ×
+                        </button>
+                      </div>
+                      <div className="flex-1 p-6">
+                        {dependencyTree && (
+                          <DependencyTreeVisualization
+                            data={dependencyTree}
+                            mainPackage={fileName}
+                          />
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <h2 className="text-xl font-semibold text-gray-200 mb-4">
@@ -698,8 +776,8 @@ export default function Home() {
                             dep.status === "current"
                               ? "bg-green-100 text-green-800"
                               : dep.status === "outdated"
-                              ? "bg-yellow-100 text-yellow-800"
-                              : "bg-red-100 text-red-800"
+                                ? "bg-yellow-100 text-yellow-800"
+                                : "bg-red-100 text-red-800"
                           }`}
                         >
                           {dep.status === "major" ? "Major Update" : dep.status}
