@@ -47,9 +47,9 @@ export default function BlogList({ posts }: BlogListProps) {
                     ).toLocaleDateString()}
                   </span>
                 </div>
-                <h3 className="font-bold text-lg mb-2 text-black">
+                <div className="font-bold text-lg mb-2 text-black">
                   <PrismicRichText field={post.data.title} />
-                </h3>
+                </div>
                 <div className="text-gray-600 text-sm mb-4">
                   <PrismicRichText field={post.data.excerpt} />
                 </div>

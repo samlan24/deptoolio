@@ -101,9 +101,9 @@ export default async function BlogPage() {
                           ).toLocaleDateString()}
                         </span>
                       </div>
-                      <h3 className="text-2xl font-bold mb-4 text-black">
+                      <div className="text-2xl font-bold mb-4 text-black">
                         <PrismicRichText field={featuredPost.data.title} />
-                      </h3>
+                      </div>
                       <div className="text-gray-600 mb-4">
                         <PrismicRichText field={featuredPost.data.excerpt} />
                       </div>

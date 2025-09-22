@@ -7,23 +7,46 @@ import { PrismicText } from "@prismicio/react";
  * Props for `DependencyCta`.
  */
 export type DependencyCtaProps =
-  SliceComponentProps<Content.DependencyCtaSlice>;
+  SliceComponentProps<Content.DependencyCtaSlice> & {
+    lightMode?: boolean;
+  };
 
 /**
  * Component for "DependencyCta" Slices.
  */
-const DependencyCta: FC<DependencyCtaProps> = ({ slice }) => {
+const DependencyCta: FC<DependencyCtaProps> = ({ slice, lightMode = false }) => {
+  // Define styles for different themes
+  const containerStyles = lightMode
+    ? "bg-blue-50 border border-blue-200"
+    : "bg-slate-800/50 border border-slate-700";
+
+  const headingStyles = lightMode
+    ? "text-gray-900"
+    : "text-white";
+
+  const subtextStyles = lightMode
+    ? "text-gray-700"
+    : "text-slate-300";
+
+  const iconStyles = lightMode
+    ? "text-blue-600"
+    : "text-blue-400";
+
+  const buttonStyles = lightMode
+    ? "bg-blue-600 hover:bg-blue-700 text-white focus:ring-blue-500 focus:ring-offset-blue-50"
+    : "bg-blue-600 hover:bg-blue-700 text-white focus:ring-blue-500 focus:ring-offset-slate-800";
+
   return (
     <section
       data-slice-type={slice.slice_type}
       data-slice-variation={slice.variation}
-      className="my-12 py-8 px-6 bg-slate-800/50 border border-slate-700 rounded-lg"
+      className={`my-12 py-8 px-6 rounded-lg ${containerStyles}`}
     >
       <div className="max-w-2xl mx-auto text-center">
         <div className="flex items-center justify-center mb-4">
           {slice.primary.show_icon && (
             <svg
-              className="w-6 h-6 mr-3 text-blue-400"
+              className={`w-6 h-6 mr-3 ${iconStyles}`}
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -37,18 +60,18 @@ const DependencyCta: FC<DependencyCtaProps> = ({ slice }) => {
             </svg>
           )}
 
-          <h3 className="text-xl font-semibold text-white">
+          <h3 className={`text-xl font-semibold ${headingStyles}`}>
             {slice.primary.heading}
           </h3>
         </div>
 
-        <p className="text-slate-300 mb-6 text-base leading-relaxed">
+        <p className={`mb-6 text-base leading-relaxed ${subtextStyles}`}>
           {slice.primary.subtext}
         </p>
 
         <PrismicLink
           field={slice.primary.button_link}
-          className="inline-flex items-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-slate-800"
+          className={`inline-flex items-center px-6 py-3 font-medium rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 ${buttonStyles}`}
         >
           {slice.primary.button_text}
           <svg
