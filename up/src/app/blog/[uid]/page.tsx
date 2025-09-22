@@ -171,18 +171,13 @@ export default async function BlogPostPage({ params }: Props) {
     return (
       <>
         <script
-          async
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4001819101528400"
-          crossOrigin="anonymous"
-        ></script>
-        <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
             __html: JSON.stringify(generateBlogPostStructuredData(post, uid)),
           }}
         />
 
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-gray-50 pt-16">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8 pt-20">
             <article className="bg-white rounded-lg shadow-sm border overflow-hidden">
               {/* Article Header */}
