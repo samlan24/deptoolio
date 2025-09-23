@@ -77,85 +77,57 @@ const DependencyTreeVisualization: React.FC<
     const { width, height } = dimensions;
     const centerX = width / 2;
     const centerY = height / 2;
-
-    // Append group for pan and zoom transformations
-    const g = svg.append("g").attr("class", "graph-container");
+    const maxRadius = Math.min(width, height) * 0.4;
 
     // Create hierarchy from data
     const root = d3.hierarchy<TreeNode>(data) as D3Node;
 
-    // Improved radial tree layout with better spacing
+    // Count total nodes to adjust spacing
+    const totalNodes = root.descendants().length;
+
+    // Dynamic radius calculation based on tree structure
+    const getRadiusForDepth = (depth: number) => {
+      if (depth === 0) return 0;
+      // Progressive radius increase with better spacing for many nodes
+      const baseRadius = maxRadius / Math.max(3, root.height);
+      return baseRadius * depth * (1 + Math.log(totalNodes) * 0.1);
+    };
+
+    // Improved radial tree layout
     const treeLayout = d3
       .tree<TreeNode>()
-      .size([2 * Math.PI, Math.min(width, height) / 1.6]) // Increased from /3 to /2.2 for more space
+      .size([2 * Math.PI, maxRadius])
       .separation((a, b) => {
-        // More intelligent spacing based on depth and sibling count
-        const baseSpacing = 6; // Increased from default
-        const depthMultiplier = a.depth === 1 ? 3.5 : 2.5; // More space for first level
-        return (
-          ((a.parent === b.parent ? baseSpacing : baseSpacing * 2) /
-            (a.depth || 1)) *
-          depthMultiplier
-        );
+        if (!a.parent || !b.parent) return 1;
+
+        // Calculate dynamic separation based on sibling count and depth
+        const siblingCount = a.parent.children?.length || 1;
+        const depthFactor = Math.max(1, 3 - a.depth!);
+        const densityFactor = Math.min(3, Math.max(1, siblingCount / 8));
+
+        // More space for nodes with many siblings
+        const baseSeparation = a.parent === b.parent ? 1 : 2;
+        return baseSeparation * depthFactor * densityFactor;
       });
 
-    treeLayout(root);
+    const treeRoot = treeLayout(root);
 
-    // Convert to Cartesian coordinates with proper typing
-    root.descendants().forEach((d: D3Node) => {
+    // Use D3's coordinate system consistently
+    treeRoot.descendants().forEach((d: any) => {
+      // D3 tree gives us (x=angle, y=radius)
       const angle = d.x;
-      const radius = d.y;
-      d.x = radius * Math.cos(angle - Math.PI / 2) + centerX;
-      d.y = radius * Math.sin(angle - Math.PI / 2) + centerY;
+      const radius = getRadiusForDepth(d.depth);
+
+      // Convert to cartesian coordinates
+      d.cartesianX = radius * Math.cos(angle - Math.PI / 2) + centerX;
+      d.cartesianY = radius * Math.sin(angle - Math.PI / 2) + centerY;
     });
 
-    // Add depth rings for better visual hierarchy
-    const depthRings = [1, 2, 3].map((depth) => {
-      const radius = (Math.min(width, height) / 2.2) * (depth / 3);
-      return g
-        .append("circle")
-        .attr("cx", centerX)
-        .attr("cy", centerY)
-        .attr("r", radius)
-        .attr("fill", "none")
-        .attr("stroke", "#E5E7EB")
-        .attr("stroke-width", 1)
-        .attr("stroke-dasharray", "5,5")
-        .attr("opacity", 0.2);
-    });
-
-    // Calculate max depth of your dependency tree
-    function getMaxDepth(node: any): number {
-      if (!node.children || node.children.length === 0) return 1;
-      return 1 + Math.max(...node.children.map(getMaxDepth));
-    }
-
-    const maxDepth = getMaxDepth(root);
-
-    // Scale radius based on depth
-    const radius = maxDepth * 120; // adjust spacing multiplier
-
-    const rootLayout = treeLayout(root);
-
-    // Radial link generator
-    const link = d3
-      .linkRadial<any, d3.HierarchyPointNode<any>>()
-      .angle((d) => d.x)
-      .radius((d) => d.y);
-
-    svg
-      .append("g")
-      .selectAll("path")
-      .data(rootLayout.links())
-      .join("path")
-      .attr("d", link as any)
-      .attr("fill", "none")
-      .attr("stroke", "#9d4edd")
-      .attr("stroke-width", 1.5);
+    // Append group for pan and zoom transformations
+    const g = svg.append("g").attr("class", "graph-container");
 
     // Create gradient definitions
     const defs = svg.append("defs");
-
     const gradientColors = {
       root: ["#8B5CF6", "#A78BFA"],
       dependency: ["#3B82F6", "#60A5FA"],
@@ -183,19 +155,27 @@ const DependencyTreeVisualization: React.FC<
         .attr("stop-color", colors[1]);
     });
 
-    const zoom = d3
-      .zoom<SVGSVGElement, unknown>()
-      .scaleExtent([0.5, 3]) // min/max zoom
-      .on("zoom", (event) => {
-        g.attr("transform", event.transform);
-      });
+    // Add depth rings for visual hierarchy
+    const depths = [
+      ...new Set(treeRoot.descendants().map((d) => d.depth)),
+    ].filter((d) => d > 0);
+    depths.forEach((depth) => {
+      const radius = getRadiusForDepth(depth);
+      g.append("circle")
+        .attr("cx", centerX)
+        .attr("cy", centerY)
+        .attr("r", radius)
+        .attr("fill", "none")
+        .attr("stroke", "#E5E7EB")
+        .attr("stroke-width", 1)
+        .attr("stroke-dasharray", "5,5")
+        .attr("opacity", 0.15);
+    });
 
-    svg.call(zoom);
-
-    // Improved tentacle links with better curves
+    // Create smooth curved links
     const links = g
       .selectAll<SVGPathElement, D3Link>(".link")
-      .data(root.links() as D3Link[])
+      .data(treeRoot.links() as D3Link[])
       .enter()
       .append("path")
       .attr("class", "link")
@@ -206,43 +186,35 @@ const DependencyTreeVisualization: React.FC<
         if (depth === 2) return "#3B82F6";
         return "#10B981";
       })
-      .attr("stroke-width", (d) => Math.max(2, 6 - (d.target.depth || 0))) // Increased thickness
-      .attr("opacity", 0.7)
+      .attr("stroke-width", (d) =>
+        Math.max(1.5, 4 - (d.target.depth || 0) * 0.5)
+      )
+      .attr("opacity", 0.8)
       .attr("d", (d) => {
-        // Improved tentacle path generation
-        const sourceX = (d.source.x || 0) - centerX;
-        const sourceY = (d.source.y || 0) - centerY;
-        const targetX = (d.target.x || 0) - centerX;
-        const targetY = (d.target.y || 0) - centerY;
+        const source = d.source as any;
+        const target = d.target as any;
 
-        // Calculate angle and distance for better curve control
-        const angle = Math.atan2(targetY - sourceY, targetX - sourceX);
-        const distance = Math.sqrt(
-          (targetX - sourceX) ** 2 + (targetY - sourceY) ** 2
-        );
+        // Use the cartesian coordinates we calculated
+        const sx = source.cartesianX;
+        const sy = source.cartesianY;
+        const tx = target.cartesianX;
+        const ty = target.cartesianY;
 
-        // Dynamic control points based on distance and depth
-        const controlOffset = Math.min(60, distance * 0.4); // Increased curve
-        const depthFactor = 1 + (d.target.depth || 0) * 0.15;
+        // Create smooth curved path
+        const dx = tx - sx;
+        const dy = ty - sy;
+        const distance = Math.sqrt(dx * dx + dy * dy);
 
-        // Create more organic tentacle curves
-        const control1X =
-          sourceX +
-          controlOffset * Math.cos(angle + Math.PI / 2.5) * depthFactor;
-        const control1Y =
-          sourceY +
-          controlOffset * Math.sin(angle + Math.PI / 2.5) * depthFactor;
-        const control2X =
-          targetX -
-          controlOffset * Math.cos(angle - Math.PI / 2.5) * depthFactor;
-        const control2Y =
-          targetY -
-          controlOffset * Math.sin(angle - Math.PI / 2.5) * depthFactor;
+        // Control point for smooth curves
+        const controlDistance = distance * 0.3;
+        const angle = Math.atan2(dy, dx);
+        const perpAngle = angle + Math.PI / 2;
 
-        return `M${sourceX + centerX},${sourceY + centerY}
-                C${control1X + centerX},${control1Y + centerY}
-                 ${control2X + centerX},${control2Y + centerY}
-                 ${targetX + centerX},${targetY + centerY}`;
+        // Slight curve for better visual appeal
+        const cx = sx + dx * 0.5 + Math.cos(perpAngle) * controlDistance * 0.2;
+        const cy = sy + dy * 0.5 + Math.sin(perpAngle) * controlDistance * 0.2;
+
+        return `M${sx},${sy} Q${cx},${cy} ${tx},${ty}`;
       })
       .style("stroke-dasharray", function () {
         return this.getTotalLength().toString();
@@ -251,22 +223,25 @@ const DependencyTreeVisualization: React.FC<
         return this.getTotalLength().toString();
       });
 
-    // Animate tentacles growing with staggered timing
+    // Animate links growing
     links
       .transition()
-      .duration(2500)
-      .delay((d, i) => i * 80)
+      .duration(1500)
+      .delay((d, i) => i * 50)
       .ease(d3.easeQuadOut)
       .style("stroke-dashoffset", "0");
 
-    // Draw nodes with improved sizing
+    // Draw nodes
     const nodes = g
       .selectAll<SVGGElement, D3Node>(".node")
-      .data(root.descendants())
+      .data(treeRoot.descendants())
       .enter()
       .append("g")
       .attr("class", "node")
-      .attr("transform", (d) => `translate(${d.x},${d.y})`)
+      .attr(
+        "transform",
+        (d: any) => `translate(${d.cartesianX},${d.cartesianY})`
+      )
       .style("cursor", "pointer")
       .on("click", (event: MouseEvent, d: D3Node) => {
         setSelectedNode(d.data);
@@ -274,38 +249,26 @@ const DependencyTreeVisualization: React.FC<
       })
       .on("mouseover", function (event: MouseEvent, d: D3Node) {
         const currentRadius =
-          d.data.type === "root"
-            ? 20
-            : (d.depth || 0) === 1
-              ? 12
-              : (d.depth || 0) === 2
-                ? 8
-                : 6;
+          d.data.type === "root" ? 18 : Math.max(6, 12 - d.depth! * 1.5);
 
         d3.select(this)
           .select("circle")
           .transition()
           .duration(200)
-          .attr("r", currentRadius * 1.4)
-          .attr("stroke-width", 4);
+          .attr("r", currentRadius * 1.3)
+          .attr("stroke-width", 3);
 
         // Highlight connected paths
         g.selectAll<SVGPathElement, D3Link>(".link")
           .filter((link: D3Link) => link.source === d || link.target === d)
           .transition()
           .duration(200)
-          .attr("stroke-width", 8)
+          .attr("stroke-width", 6)
           .attr("opacity", 1);
       })
       .on("mouseout", function (event: MouseEvent, d: D3Node) {
         const currentRadius =
-          d.data.type === "root"
-            ? 20
-            : (d.depth || 0) === 1
-              ? 12
-              : (d.depth || 0) === 2
-                ? 8
-                : 6;
+          d.data.type === "root" ? 18 : Math.max(6, 12 - d.depth! * 1.5);
 
         d3.select(this)
           .select("circle")
@@ -319,12 +282,12 @@ const DependencyTreeVisualization: React.FC<
           .transition()
           .duration(200)
           .attr("stroke-width", (link: D3Link) =>
-            Math.max(2, 6 - (link.target.depth || 0))
+            Math.max(1.5, 4 - (link.target.depth || 0) * 0.5)
           )
-          .attr("opacity", 0.7);
+          .attr("opacity", 0.8);
       });
 
-    // Add circles for nodes with improved sizing
+    // Add circles for nodes
     nodes
       .append("circle")
       .attr("r", 0)
@@ -336,59 +299,57 @@ const DependencyTreeVisualization: React.FC<
       .attr("stroke", "#fff")
       .attr("stroke-width", (d: D3Node) => (d.data.type === "root" ? 3 : 2))
       .transition()
-      .duration(1200)
-      .delay((d: any, i: number) => i * 60)
+      .duration(1000)
+      .delay((d: any, i: number) => i * 40)
       .attr("r", (d: D3Node) => {
-        if (d.data.type === "root") return 20;
-        if ((d.depth || 0) === 1) return 12;
-        if ((d.depth || 0) === 2) return 8;
-        return 6;
+        if (d.data.type === "root") return 18;
+        // Dynamic sizing based on depth, smaller for deeper nodes
+        return Math.max(6, 12 - d.depth! * 1.5);
       });
 
-    // Add improved labels with collision detection
+    // Add labels with better positioning
     const labels = nodes
       .append("text")
       .attr("dy", (d: D3Node) => {
-        const baseOffset = d.data.type === "root" ? 0 : -22;
-        return baseOffset;
+        if (d.data.type === "root") return 5;
+        const radius = Math.max(6, 12 - d.depth! * 1.5);
+        return -(radius + 8);
       })
       .attr("text-anchor", "middle")
       .attr("font-size", (d: D3Node) => {
-        if (d.data.type === "root") return "16px";
-        if ((d.depth || 0) === 1) return "13px";
-        if ((d.depth || 0) === 2) return "11px";
-        return "10px";
+        if (d.data.type === "root") return "14px";
+        const baseSize = Math.max(9, 12 - d.depth! * 1);
+        return `${baseSize}px`;
       })
       .attr("font-weight", (d: D3Node) =>
-        d.data.type === "root" ? "bold" : "500"
+        d.data.type === "root" ? "600" : "500"
       )
       .attr("fill", "#374151")
       .attr("opacity", 0)
       .text((d: D3Node) => {
-        const name = d.data.name;
         if (d.data.type === "root") return mainPackage || "Your Project";
-        // Adjust truncation based on depth
-        const maxLength = (d.depth || 0) === 1 ? 18 : 12;
-        if (name.length > maxLength)
-          return name.substring(0, maxLength - 3) + "...";
-        return name;
+
+        const name = d.data.name;
+        const maxLength = Math.max(8, 20 - d.depth! * 3);
+        return name.length > maxLength
+          ? name.substring(0, maxLength - 3) + "..."
+          : name;
       });
 
-    // Add background rectangles for better label visibility
+    // Add background for labels
     labels.each(function (d: D3Node) {
       const textElement = this as SVGTextElement;
       const bbox = textElement.getBBox();
 
       if (bbox.width > 0) {
-        // Only add background if text exists
         d3.select(textElement.parentNode as SVGGElement)
           .insert("rect", "text")
-          .attr("x", bbox.x - 3)
-          .attr("y", bbox.y - 1)
-          .attr("width", bbox.width + 6)
-          .attr("height", bbox.height + 2)
-          .attr("fill", "rgba(255, 255, 255, 0.85)")
-          .attr("rx", 4)
+          .attr("x", bbox.x - 4)
+          .attr("y", bbox.y - 2)
+          .attr("width", bbox.width + 8)
+          .attr("height", bbox.height + 4)
+          .attr("fill", "rgba(255, 255, 255, 0.9)")
+          .attr("rx", 3)
           .attr("opacity", 0);
       }
     });
@@ -396,81 +357,72 @@ const DependencyTreeVisualization: React.FC<
     // Animate labels
     labels
       .transition()
-      .duration(1000)
-      .delay((d: any, i: number) => i * 60 + 600)
+      .duration(800)
+      .delay((d: any, i: number) => i * 40 + 500)
       .attr("opacity", 1);
 
-    // Animate label backgrounds
     nodes
       .selectAll("rect")
       .transition()
-      .duration(1000)
-      .delay((d: any, i: number) => i * 60 + 600)
+      .duration(800)
+      .delay((d: any, i: number) => i * 40 + 500)
       .attr("opacity", 1);
 
-    // Add version labels for non-root nodes with better positioning
+    // Add version labels
     nodes
       .filter((d: D3Node) => d.data.type !== "root" && !!d.data.version)
       .append("text")
       .attr("dy", (d: D3Node) => {
-        const baseOffset = (d.depth || 0) > 1 ? 22 : 26;
-        return baseOffset;
+        const radius = Math.max(6, 12 - d.depth! * 1.5);
+        return radius + 16;
       })
       .attr("text-anchor", "middle")
-      .attr("font-size", "9px")
+      .attr("font-size", "8px")
       .attr("fill", "#6B7280")
-      .attr("font-weight", "400")
       .attr("opacity", 0)
       .text((d: D3Node) => d.data.version || "")
       .transition()
-      .duration(1000)
-      .delay((d: any, i: number) => i * 60 + 1200)
-      .attr("opacity", 0.8);
+      .duration(800)
+      .delay((d: any, i: number) => i * 40 + 1000)
+      .attr("opacity", 0.7);
 
-    // Enhanced floating particles effect
-    const particleCount = 25;
+    // Floating particles
+    const particleCount = Math.min(30, totalNodes * 2);
     const particles = svg
       .selectAll(".particle")
       .data(d3.range(particleCount))
       .enter()
       .append("circle")
       .attr("class", "particle")
-      .attr("r", () => Math.random() * 2 + 1)
+      .attr("r", () => Math.random() * 1.5 + 0.5)
       .attr("fill", () => {
         const colors = ["#A78BFA", "#60A5FA", "#34D399"];
         return colors[Math.floor(Math.random() * colors.length)];
       })
-      .attr("opacity", 0.3);
+      .attr("opacity", 0.2);
 
     const animateParticles = () => {
       particles
         .attr("cx", () => Math.random() * width)
         .attr("cy", () => Math.random() * height)
         .transition()
-        .duration(() => 8000 + Math.random() * 4000)
+        .duration(() => 6000 + Math.random() * 4000)
         .ease(d3.easeLinear)
         .attr("cx", () => Math.random() * width)
         .attr("cy", () => Math.random() * height)
         .on("end", animateParticles);
     };
-    setTimeout(animateParticles, 3000);
+    setTimeout(animateParticles, 2000);
 
-    // Enable zoom and pan with constraints
+    // Zoom and pan
     const zoomBehavior = d3
       .zoom<SVGSVGElement, unknown>()
-      .scaleExtent([0.3, 8]) // Extended zoom range
+      .scaleExtent([0.2, 5])
       .on("zoom", (event) => {
         g.attr("transform", event.transform);
       });
 
     svg.call(zoomBehavior as any);
-  };
-
-  const getNodeTypeColor = (type: string, depth?: number): string => {
-    if (type === "root") return "text-purple-700";
-    if (depth === 1) return "text-blue-700";
-    if (depth === 2) return "text-blue-600";
-    return "text-green-600";
   };
 
   const onPanelClick = () => {
@@ -490,7 +442,6 @@ const DependencyTreeVisualization: React.FC<
 
   return (
     <div className="relative w-full h-full" ref={containerRef}>
-      {/* Graph */}
       <svg
         ref={svgRef}
         width={dimensions.width}
@@ -499,7 +450,6 @@ const DependencyTreeVisualization: React.FC<
         style={{ cursor: "grab" }}
       />
 
-      {/* Floating Panel */}
       {selectedNode && (
         <div
           onClick={onPanelClick}
@@ -513,7 +463,6 @@ const DependencyTreeVisualization: React.FC<
           </h4>
 
           <div className="space-y-4">
-            {/* Package header */}
             <div>
               <h5
                 className={`font-medium text-lg ${
@@ -531,7 +480,6 @@ const DependencyTreeVisualization: React.FC<
               )}
             </div>
 
-            {/* Description */}
             {selectedNode.description && (
               <div>
                 <h6 className="font-medium text-gray-700 text-sm">
@@ -543,7 +491,6 @@ const DependencyTreeVisualization: React.FC<
               </div>
             )}
 
-            {/* License and Maintainers */}
             <div className="grid grid-cols-2 gap-3 text-sm">
               {selectedNode.license && (
                 <div>
@@ -562,7 +509,6 @@ const DependencyTreeVisualization: React.FC<
               )}
             </div>
 
-            {/* Dependencies list */}
             {selectedNode.children && selectedNode.children.length > 0 && (
               <div>
                 <h6 className="font-medium text-gray-700 text-sm">
@@ -582,7 +528,6 @@ const DependencyTreeVisualization: React.FC<
             )}
           </div>
 
-          {/* Legend */}
           <div className="mt-2 pt-4 border-t">
             <h6 className="font-medium text-gray-700 text-sm mb-2">Legend</h6>
             <div className="space-y-2 text-xs">
@@ -609,7 +554,6 @@ const DependencyTreeVisualization: React.FC<
         </div>
       )}
 
-      {/* Instructions overlay */}
       <div className="absolute bottom-6 left-6 bg-white/90 backdrop-blur-sm rounded-lg p-3 shadow-lg border">
         <p className="text-xs text-gray-600">
           <strong>Drag</strong> to pan • <strong>Scroll</strong> to zoom •{" "}
