@@ -368,7 +368,7 @@ const DependencyTreeVisualization: React.FC<
       .delay((d: any, i: number) => i * 40 + 500)
       .attr("opacity", 1);
 
-    // Add version labels
+    // version labels
     nodes
       .filter((d: D3Node) => d.data.type !== "root" && !!d.data.version)
       .append("text")
