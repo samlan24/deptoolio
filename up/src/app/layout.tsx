@@ -5,6 +5,7 @@ import Navigation from "./components/Nav";
 import Footer from "./components/Footer";
 import DynamicCanonical from "./components/DynamicCanonical";
 import "./globals.css";
+import { SpeedInsights } from '@vercel/speed-insights/next';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -149,6 +150,7 @@ export default function RootLayout({
         <DynamicCanonical />
         <Navigation />
         {children}
+        <SpeedInsights />
         <Footer />
       </body>
     </html>
