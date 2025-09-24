@@ -5,9 +5,8 @@ export default function robots(): MetadataRoute.Robots {
   return {
     rules: {
       userAgent: '*',
-      allow: ['/', '/about', '/terms', '/privacy', '/login'],
-      disallow: ['/api/', '/dashboard', '/checks','/repo-scanner'],
+      disallow: ['/api/', '/dashboard','/repo-scanner', '/depscanner'],
     },
-    sitemap: 'https://www.pacgie.com/sitemap.xml', // Note: using www since that's your canonical
+    sitemap: 'https://www.pacgie.com/sitemap.xml',
   }
 }
