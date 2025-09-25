@@ -8,6 +8,7 @@ import Image from "next/image";
 import Link from "next/link";
 import Script from "next/script";
 import DependencyCta from "../../../slices/DependencyCta";
+import GoogleAdsScript from "@/app/components/GoogleAdsScript";
 
 interface Props {
   params: Promise<{ uid: string }>;
@@ -167,12 +168,8 @@ export default async function BlogPostPage({ params }: Props) {
 
     return (
       <>
-        <Script
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4001819101528400"
-          crossOrigin="anonymous"
-          strategy="afterInteractive"
-        />
 
+      <GoogleAdsScript />
         <Script
           id="blog-structured-data"
           type="application/ld+json"
