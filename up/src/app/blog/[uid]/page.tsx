@@ -93,7 +93,7 @@ const generateBlogPostStructuredData = (post: any, uid: string) => ({
 
 const richTextComponents: JSXMapSerializer = {
   heading1: ({ children }) => (
-    <h1 className="text-3xl text-gray-900 font-bold my-6">{children}</h1>
+    <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 leading-tight mb-4">{children}</h1>
   ),
   heading2: ({ children }) => (
     <h2 className="text-2xl text-gray-900 font-semibold my-5">{children}</h2>
@@ -204,9 +204,6 @@ export default async function BlogPostPage({ params }: Props) {
                 </Link>
 
                 <div className="mb-6">
-                  <div className="text-3xl sm:text-4xl font-bold text-gray-900 leading-tight mb-4">
-                    <PrismicRichText field={post.data.title} />
-                  </div>
 
                   {post.data.excerpt && (
                     <div className="text-lg text-gray-600 mb-4">
