@@ -10,7 +10,7 @@ interface BlogListProps {
 }
 
 export default function BlogList({ posts }: BlogListProps) {
-  const [visibleCount, setVisibleCount] = useState(8);
+  const [visibleCount, setVisibleCount] = useState(9);
 
   const loadMore = () => {
     setVisibleCount(prev => prev + 6);
