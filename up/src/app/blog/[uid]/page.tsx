@@ -14,7 +14,6 @@ interface Props {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-
   const { uid } = await params;
   const client = createClient();
   try {
@@ -174,8 +173,10 @@ export default async function BlogPostPage({ params }: Props) {
           strategy="afterInteractive"
         />
 
-        <script
+        <Script
+          id="blog-structured-data"
           type="application/ld+json"
+          strategy="afterInteractive"
           dangerouslySetInnerHTML={{
             __html: JSON.stringify(generateBlogPostStructuredData(post, uid)),
           }}
@@ -193,7 +194,6 @@ export default async function BlogPostPage({ params }: Props) {
                   {/* SVG and text */}
                   Back to Blog
                 </Link>
-
 
                 {post.data.featured_image?.url && (
                   <div className="mb-6">
