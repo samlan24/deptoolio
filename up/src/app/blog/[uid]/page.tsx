@@ -165,11 +165,6 @@ export default async function BlogPostPage({ params }: Props) {
 
     return (
       <>
-        <Script
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4001819101528400"
-          crossOrigin="anonymous"
-          strategy="afterInteractive"
-        />
 
         <script
           type="application/ld+json"
