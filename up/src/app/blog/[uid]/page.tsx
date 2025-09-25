@@ -204,15 +204,6 @@ export default async function BlogPostPage({ params }: Props) {
                 </Link>
 
                 <div className="mb-6">
-                  <div className="text-3xl sm:text-4xl font-bold text-gray-900 leading-tight mb-4">
-                    <PrismicRichText field={post.data.title} />
-                  </div>
-
-                  {post.data.excerpt && (
-                    <div className="text-lg text-gray-600 mb-4">
-                      <PrismicRichText field={post.data.excerpt} />
-                    </div>
-                  )}
 
                   <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500">
                     {post.data.author && (
