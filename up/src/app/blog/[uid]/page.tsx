@@ -7,7 +7,6 @@ import { createClient } from "@/prismicio";
 import Image from "next/image";
 import Link from "next/link";
 import Script from "next/script";
-import { useRouter } from "next/navigation";
 import DependencyCta from "../../../slices/DependencyCta";
 
 interface Props {
@@ -15,7 +14,7 @@ interface Props {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const router = useRouter();
+
   const { uid } = await params;
   const client = createClient();
   try {
