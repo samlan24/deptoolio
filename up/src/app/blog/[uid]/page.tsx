@@ -7,6 +7,7 @@ import { createClient } from "@/prismicio";
 import Image from "next/image";
 import Link from "next/link";
 import Script from "next/script";
+import { useRouter } from "next/navigation";
 import DependencyCta from "../../../slices/DependencyCta";
 
 interface Props {
@@ -14,6 +15,7 @@ interface Props {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const router = useRouter();
   const { uid } = await params;
   const client = createClient();
   try {
@@ -93,7 +95,9 @@ const generateBlogPostStructuredData = (post: any, uid: string) => ({
 
 const richTextComponents: JSXMapSerializer = {
   heading1: ({ children }) => (
-    <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 leading-tight mb-4">{children}</h1>
+    <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 leading-tight mb-4">
+      {children}
+    </h1>
   ),
   heading2: ({ children }) => (
     <h2 className="text-2xl text-gray-900 font-semibold my-5">{children}</h2>
@@ -187,30 +191,25 @@ export default async function BlogPostPage({ params }: Props) {
                   href="/blog"
                   className="inline-flex items-center text-blue-600 hover:text-blue-800 mb-6 text-sm font-medium transition-colors"
                 >
-                  <svg
-                    className="w-4 h-4 mr-1"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M15 19l-7-7 7-7"
-                    />
-                  </svg>
+                  {/* SVG and text */}
                   Back to Blog
                 </Link>
 
+
+                {post.data.featured_image?.url && (
+                  <div className="mb-6">
+                    <Image
+                      src={post.data.featured_image.url}
+                      alt={post.data.featured_image.alt || ""}
+                      width={800}
+                      height={400}
+                      className="w-full h-64 sm:h-80 object-cover rounded-lg"
+                      priority
+                    />
+                  </div>
+                )}
+
                 <div className="mb-6">
-
-                  {post.data.excerpt && (
-                    <div className="text-lg text-gray-600 mb-4">
-                      <PrismicRichText field={post.data.excerpt} />
-                    </div>
-                  )}
-
                   <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500">
                     {post.data.author && (
                       <span className="flex items-center">
@@ -253,19 +252,6 @@ export default async function BlogPostPage({ params }: Props) {
                     )}
                   </div>
                 </div>
-
-                {post.data.featured_image?.url && (
-                  <div className="mb-6">
-                    <Image
-                      src={post.data.featured_image.url}
-                      alt={post.data.featured_image.alt || ""}
-                      width={800}
-                      height={400}
-                      className="w-full h-64 sm:h-80 object-cover rounded-lg"
-                      priority
-                    />
-                  </div>
-                )}
               </div>
 
               {/* Article Content */}
