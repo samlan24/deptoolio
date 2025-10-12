@@ -128,10 +128,16 @@ const Footer = () => {
                 </a>
               </div>
 
-              <img
-                src="https://site-watch-lite.vercel.app/api/badge/7YooF7vjsThOMLl1L5vr"
-                alt="Website Status"
-              />
+              <a
+                href="https://site-watch-lite.vercel.app"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <img
+                  src="https://site-watch-lite.vercel.app/api/badge/7YooF7vjsThOMLl1L5vr"
+                  alt="Website Status"
+                />
+              </a>
             </div>
           </div>
         </div>
