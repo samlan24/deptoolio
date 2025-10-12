@@ -127,17 +127,6 @@ const Footer = () => {
                   <Twitter className="w-5 h-5" />
                 </a>
               </div>
-
-              <a
-                href="https://site-watch-lite.vercel.app"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <img
-                  src="https://site-watch-lite.vercel.app/api/badge/7YooF7vjsThOMLl1L5vr"
-                  alt="Website Status"
-                />
-              </a>
             </div>
           </div>
         </div>
