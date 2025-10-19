@@ -145,11 +145,7 @@ export default function RootLayout({
             gtag('config', 'G-CPB8N6RKJ2');
           `}
         </Script>
-        <Script
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4001819101528400"
-          crossOrigin="anonymous"
-          strategy="afterInteractive"
-        />
+
       </head>
       <body className={`${inter.variable} antialiased`}>
         <DynamicCanonical />
