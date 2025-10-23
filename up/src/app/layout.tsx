@@ -5,7 +5,7 @@ import Navigation from "./components/Nav";
 import Footer from "./components/Footer";
 import DynamicCanonical from "./components/DynamicCanonical";
 import "./globals.css";
-import { SpeedInsights } from '@vercel/speed-insights/next';
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -149,6 +149,65 @@ export default function RootLayout({
           src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4001819101528400"
           crossOrigin="anonymous"
           strategy="afterInteractive"
+        />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+(function() {
+  'use strict';
+  var WEBSITE_ID = 'nrs6jg6bH02VsithsanJ';
+  var API_ENDPOINT = 'https://sitewatchie.vercel.app/api/track';
+
+  if (window.__sitewatchie_initialized) return;
+  window.__sitewatchie_initialized = true;
+
+  console.log("✅ SiteWatchie tracking initialized");
+
+  function sendError(errorData) {
+    try {
+      fetch(API_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'js-error',
+          websiteId: WEBSITE_ID,
+          data: errorData
+        }),
+        keepalive: true,
+      }).catch(() => {});
+    } catch (e) {
+      console.error("💥 sendError failed:", e);
+    }
+  }
+
+  window.addEventListener('error', function(event) {
+    if (!event.filename || event.filename.includes('chrome-extension://')) return;
+    console.log('🔥 Global error captured:', event.message);
+    sendError({
+      message: event.message,
+      stack: event.error ? event.error.stack : '',
+      url: window.location.href,
+      userAgent: navigator.userAgent,
+      timestamp: Date.now(),
+      filename: event.filename,
+      lineno: event.lineno,
+      colno: event.colno
+    });
+  });
+
+  window.addEventListener('unhandledrejection', function(event) {
+    console.log('🔥 Promise rejection captured:', event.reason);
+    sendError({
+      message: 'Unhandled Promise Rejection: ' + (event.reason || 'Unknown'),
+      stack: event.reason && event.reason.stack ? event.reason.stack : '',
+      url: window.location.href,
+      userAgent: navigator.userAgent,
+      timestamp: Date.now()
+    });
+  });
+})();
+          `,
+          }}
         />
       </head>
       <body className={`${inter.variable} antialiased`}>
